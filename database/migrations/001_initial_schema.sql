@@ -1,0 +1,159 @@
+-- Initial schema for Citizen Request Management System
+-- Target DB: PostgreSQL
+
+BEGIN;
+
+CREATE TYPE request_status AS ENUM (
+  'NEW',
+  'IN_PROGRESS',
+  'CLARIFICATION_NEEDED',
+  'RESOLVED',
+  'CLOSED'
+);
+
+CREATE TYPE request_priority AS ENUM (
+  'LOW',
+  'MEDIUM',
+  'HIGH',
+  'CRITICAL'
+);
+
+CREATE TABLE staff_users (
+  id               BIGSERIAL PRIMARY KEY,
+  full_name        VARCHAR(120) NOT NULL,
+  email            VARCHAR(255) NOT NULL UNIQUE,
+  is_active        BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE categories (
+  id               BIGSERIAL PRIMARY KEY,
+  name             VARCHAR(80) NOT NULL UNIQUE,
+  description      VARCHAR(255),
+  is_active        BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE citizen_requests (
+  id                   BIGSERIAL PRIMARY KEY,
+  title                VARCHAR(180) NOT NULL,
+  description          TEXT NOT NULL,
+  category_id          BIGINT NOT NULL REFERENCES categories(id),
+  priority             request_priority NOT NULL,
+  status               request_status NOT NULL DEFAULT 'NEW',
+  citizen_name         VARCHAR(120),
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  assigned_to_user_id  BIGINT REFERENCES staff_users(id),
+  resolved_at          TIMESTAMPTZ,
+  closed_at            TIMESTAMPTZ,
+
+  CONSTRAINT chk_title_not_blank CHECK (LENGTH(BTRIM(title)) > 0),
+  CONSTRAINT chk_desc_not_blank CHECK (LENGTH(BTRIM(description)) > 0),
+  CONSTRAINT chk_resolved_at_for_resolved_or_closed CHECK (
+    (status IN ('RESOLVED', 'CLOSED') AND resolved_at IS NOT NULL)
+    OR
+    (status NOT IN ('RESOLVED', 'CLOSED'))
+  ),
+  CONSTRAINT chk_closed_at_for_closed CHECK (
+    (status = 'CLOSED' AND closed_at IS NOT NULL)
+    OR
+    (status <> 'CLOSED')
+  )
+);
+
+CREATE TABLE request_comments (
+  id               BIGSERIAL PRIMARY KEY,
+  request_id       BIGINT NOT NULL REFERENCES citizen_requests(id) ON DELETE CASCADE,
+  author_user_id   BIGINT NOT NULL REFERENCES staff_users(id),
+  comment_text     TEXT NOT NULL,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT chk_comment_not_blank CHECK (LENGTH(BTRIM(comment_text)) > 0)
+);
+
+CREATE TABLE request_status_history (
+  id               BIGSERIAL PRIMARY KEY,
+  request_id       BIGINT NOT NULL REFERENCES citizen_requests(id) ON DELETE CASCADE,
+  from_status      request_status,
+  to_status        request_status NOT NULL,
+  changed_by_user_id BIGINT NOT NULL REFERENCES staff_users(id),
+  change_note      VARCHAR(500),
+  changed_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT chk_from_to_different CHECK (
+    from_status IS NULL OR from_status <> to_status
+  )
+);
+
+CREATE INDEX idx_requests_status ON citizen_requests(status);
+CREATE INDEX idx_requests_category ON citizen_requests(category_id);
+CREATE INDEX idx_requests_priority ON citizen_requests(priority);
+CREATE INDEX idx_requests_assigned_to ON citizen_requests(assigned_to_user_id);
+CREATE INDEX idx_comments_request ON request_comments(request_id);
+CREATE INDEX idx_history_request ON request_status_history(request_id);
+
+-- Enforce allowed status transitions in history table.
+CREATE OR REPLACE FUNCTION validate_status_transition()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.from_status IS NULL AND NEW.to_status <> 'NEW' THEN
+    RAISE EXCEPTION 'Initial status must be NEW';
+  END IF;
+
+  IF NEW.from_status = 'NEW' AND NEW.to_status NOT IN ('IN_PROGRESS', 'CLARIFICATION_NEEDED') THEN
+    RAISE EXCEPTION 'Invalid transition from NEW to %', NEW.to_status;
+  END IF;
+
+  IF NEW.from_status = 'IN_PROGRESS' AND NEW.to_status NOT IN ('CLARIFICATION_NEEDED', 'RESOLVED') THEN
+    RAISE EXCEPTION 'Invalid transition from IN_PROGRESS to %', NEW.to_status;
+  END IF;
+
+  IF NEW.from_status = 'CLARIFICATION_NEEDED' AND NEW.to_status <> 'IN_PROGRESS' THEN
+    RAISE EXCEPTION 'Invalid transition from CLARIFICATION_NEEDED to %', NEW.to_status;
+  END IF;
+
+  IF NEW.from_status = 'RESOLVED' AND NEW.to_status <> 'CLOSED' THEN
+    RAISE EXCEPTION 'Invalid transition from RESOLVED to %', NEW.to_status;
+  END IF;
+
+  IF NEW.from_status = 'CLOSED' THEN
+    RAISE EXCEPTION 'CLOSED requests cannot transition';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_validate_status_transition
+BEFORE INSERT ON request_status_history
+FOR EACH ROW
+EXECUTE FUNCTION validate_status_transition();
+
+-- Keep updated_at synced.
+CREATE OR REPLACE FUNCTION touch_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_touch_users_updated
+BEFORE UPDATE ON staff_users
+FOR EACH ROW
+EXECUTE FUNCTION touch_updated_at();
+
+CREATE TRIGGER trg_touch_categories_updated
+BEFORE UPDATE ON categories
+FOR EACH ROW
+EXECUTE FUNCTION touch_updated_at();
+
+CREATE TRIGGER trg_touch_requests_updated
+BEFORE UPDATE ON citizen_requests
+FOR EACH ROW
+EXECUTE FUNCTION touch_updated_at();
+
+COMMIT;
