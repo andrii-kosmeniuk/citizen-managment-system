@@ -4,15 +4,18 @@ This schema supports the Citizen Request Management System requirements.
 
 ## Tables
 
-### `staff_users`
-- Purpose: City staff members who claim requests, change statuses, and write comments.
+### `staff_user`
+- Purpose: City staff directory used for ownership and auditability.
+- Why needed: It tracks who claimed a request, who changed request status, and who authored each comment.
 - Key columns:
   - `id` primary key
-  - `full_name`, `email` (unique)
+  - `first_name` `VARCHAR(50)`
+  - `last_name` `VARCHAR(50)`
+  - `email` (unique)
   - `is_active`
   - `created_at`, `updated_at`
 
-### `categories`
+### `category`
 - Purpose: Managed request categories (Infrastructure, Environment, etc.).
 - Key columns:
   - `id` primary key
@@ -21,16 +24,16 @@ This schema supports the Citizen Request Management System requirements.
   - `is_active`
   - `created_at`, `updated_at`
 
-### `citizen_requests`
+### `citizen_request`
 - Purpose: Main citizen request entity.
 - Key columns:
   - `id` primary key
   - `title`, `description`
-  - `category_id` foreign key to `categories`
+  - `category_id` foreign key to `category`
   - `priority` enum: `LOW | MEDIUM | HIGH | CRITICAL`
   - `status` enum: `NEW | IN_PROGRESS | CLARIFICATION_NEEDED | RESOLVED | CLOSED`
   - `citizen_name` (optional)
-  - `assigned_to_user_id` foreign key to `staff_users`
+  - `assigned_to_user_id` foreign key to `staff_user`
   - `resolved_at`, `closed_at`
   - `created_at`, `updated_at`
 - Constraints:
@@ -38,12 +41,12 @@ This schema supports the Citizen Request Management System requirements.
   - `resolved_at` required for `RESOLVED` and `CLOSED`.
   - `closed_at` required for `CLOSED`.
 
-### `request_comments`
+### `request_comment`
 - Purpose: Immutable historical comments on requests.
 - Key columns:
   - `id` primary key
-  - `request_id` foreign key to `citizen_requests` (cascade delete)
-  - `author_user_id` foreign key to `staff_users`
+  - `request_id` foreign key to `citizen_request` (cascade delete)
+  - `author_user_id` foreign key to `staff_user`
   - `comment_text`
   - `created_at`
 - Constraint: comment text cannot be blank.
@@ -52,11 +55,11 @@ This schema supports the Citizen Request Management System requirements.
 - Purpose: Audit trail of all status transitions.
 - Key columns:
   - `id` primary key
-  - `request_id` foreign key to `citizen_requests` (cascade delete)
+  - `request_id` foreign key to `citizen_request` (cascade delete)
   - `from_status` enum (nullable for initial transition)
   - `to_status` enum (required)
-  - `changed_by_user_id` foreign key to `staff_users`
-  - `change_note`
+  - `changed_by_user_id` foreign key to `staff_user`
+  - `change_note` `VARCHAR(255)`
   - `changed_at`
 - Constraint: `from_status` and `to_status` must differ.
 
@@ -74,7 +77,7 @@ A trigger validates transitions in `request_status_history`:
 
 Indexes are added for common filtering and lookups:
 - Request filters: `status`, `category_id`, `priority`, `assigned_to_user_id`
-- Relationship lookups: `request_comments.request_id`, `request_status_history.request_id`
+- Relationship lookups: `request_comment.request_id`, `request_status_history.request_id`
 
 ## Migration file
 

@@ -18,19 +18,21 @@ CREATE TYPE request_priority AS ENUM (
   'CRITICAL'
 );
 
-CREATE TABLE staff_users (
+CREATE TABLE staff_user (
   id               BIGSERIAL PRIMARY KEY,
-  full_name        VARCHAR(120) NOT NULL,
+  first_name       VARCHAR(50) NOT NULL,
+  last_name        VARCHAR(50) NOT NULL,
   email            VARCHAR(255) NOT NULL UNIQUE,
   is_active        BOOLEAN NOT NULL DEFAULT TRUE,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  CONSTRAINT chk_staff_full_name_not_blank CHECK (LENGTH(BTRIM(full_name)) > 0),
+  CONSTRAINT chk_staff_first_name_not_blank CHECK (LENGTH(BTRIM(first_name)) > 0),
+  CONSTRAINT chk_staff_last_name_not_blank CHECK (LENGTH(BTRIM(last_name)) > 0),
   CONSTRAINT chk_staff_email_not_blank CHECK (LENGTH(BTRIM(email)) > 0)
 );
 
-CREATE TABLE categories (
+CREATE TABLE category (
   id               BIGSERIAL PRIMARY KEY,
   name             VARCHAR(100) NOT NULL UNIQUE,
   description      VARCHAR(255),
@@ -41,17 +43,17 @@ CREATE TABLE categories (
   CONSTRAINT chk_category_name_not_blank CHECK (LENGTH(BTRIM(name)) > 0)
 );
 
-CREATE TABLE citizen_requests (
+CREATE TABLE citizen_request (
   id                   BIGSERIAL PRIMARY KEY,
   title                VARCHAR(100) NOT NULL,
   description          TEXT NOT NULL,
-  category_id          BIGINT NOT NULL REFERENCES categories(id),
+  category_id          BIGINT NOT NULL REFERENCES category(id),
   priority             request_priority NOT NULL,
   status               request_status NOT NULL DEFAULT 'NEW',
   citizen_name         VARCHAR(150),
   created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  assigned_to_user_id  BIGINT REFERENCES staff_users(id),
+  assigned_to_user_id  BIGINT REFERENCES staff_user(id),
   resolved_at          TIMESTAMPTZ,
   closed_at            TIMESTAMPTZ,
 
@@ -72,10 +74,10 @@ CREATE TABLE citizen_requests (
   )
 );
 
-CREATE TABLE request_comments (
+CREATE TABLE request_comment (
   id               BIGSERIAL PRIMARY KEY,
-  request_id       BIGINT NOT NULL REFERENCES citizen_requests(id) ON DELETE CASCADE,
-  author_user_id   BIGINT NOT NULL REFERENCES staff_users(id),
+  request_id       BIGINT NOT NULL REFERENCES citizen_request(id) ON DELETE CASCADE,
+  author_user_id   BIGINT NOT NULL REFERENCES staff_user(id),
   comment_text     TEXT NOT NULL,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
@@ -84,11 +86,11 @@ CREATE TABLE request_comments (
 
 CREATE TABLE request_status_history (
   id               BIGSERIAL PRIMARY KEY,
-  request_id       BIGINT NOT NULL REFERENCES citizen_requests(id) ON DELETE CASCADE,
+  request_id       BIGINT NOT NULL REFERENCES citizen_request(id) ON DELETE CASCADE,
   from_status      request_status,
   to_status        request_status NOT NULL,
-  changed_by_user_id BIGINT NOT NULL REFERENCES staff_users(id),
-  change_note      VARCHAR(500),
+  changed_by_user_id BIGINT NOT NULL REFERENCES staff_user(id),
+  change_note      VARCHAR(255),
   changed_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
   CONSTRAINT chk_from_to_different CHECK (
@@ -96,13 +98,13 @@ CREATE TABLE request_status_history (
   )
 );
 
-CREATE INDEX idx_requests_status ON citizen_requests(status);
-CREATE INDEX idx_requests_category ON citizen_requests(category_id);
-CREATE INDEX idx_requests_priority ON citizen_requests(priority);
-CREATE INDEX idx_requests_assigned_to ON citizen_requests(assigned_to_user_id);
-CREATE INDEX idx_requests_created_at ON citizen_requests(created_at DESC);
-CREATE INDEX idx_requests_filter_combo ON citizen_requests(status, category_id, priority);
-CREATE INDEX idx_comments_request_created_at ON request_comments(request_id, created_at ASC);
+CREATE INDEX idx_requests_status ON citizen_request(status);
+CREATE INDEX idx_requests_category ON citizen_request(category_id);
+CREATE INDEX idx_requests_priority ON citizen_request(priority);
+CREATE INDEX idx_requests_assigned_to ON citizen_request(assigned_to_user_id);
+CREATE INDEX idx_requests_created_at ON citizen_request(created_at DESC);
+CREATE INDEX idx_requests_filter_combo ON citizen_request(status, category_id, priority);
+CREATE INDEX idx_comments_request_created_at ON request_comment(request_id, created_at ASC);
 CREATE INDEX idx_history_request_changed_at ON request_status_history(request_id, changed_at ASC);
 
 -- Enforce allowed status transitions in history table.
@@ -154,7 +156,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_prevent_closed_request_updates
-BEFORE UPDATE ON citizen_requests
+BEFORE UPDATE ON citizen_request
 FOR EACH ROW
 EXECUTE FUNCTION prevent_closed_request_updates();
 
@@ -165,7 +167,7 @@ DECLARE
   current_status request_status;
 BEGIN
   SELECT status INTO current_status
-  FROM citizen_requests
+  FROM citizen_request
   WHERE id = NEW.request_id;
 
   IF current_status = 'CLOSED' THEN
@@ -177,7 +179,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_prevent_comments_on_closed_requests
-BEFORE INSERT ON request_comments
+BEFORE INSERT ON request_comment
 FOR EACH ROW
 EXECUTE FUNCTION prevent_comments_on_closed_requests();
 
@@ -191,17 +193,17 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_touch_users_updated
-BEFORE UPDATE ON staff_users
+BEFORE UPDATE ON staff_user
 FOR EACH ROW
 EXECUTE FUNCTION touch_updated_at();
 
-CREATE TRIGGER trg_touch_categories_updated
-BEFORE UPDATE ON categories
+CREATE TRIGGER trg_touch_category_updated
+BEFORE UPDATE ON category
 FOR EACH ROW
 EXECUTE FUNCTION touch_updated_at();
 
 CREATE TRIGGER trg_touch_requests_updated
-BEFORE UPDATE ON citizen_requests
+BEFORE UPDATE ON citizen_request
 FOR EACH ROW
 EXECUTE FUNCTION touch_updated_at();
 
