@@ -24,26 +24,31 @@ CREATE TABLE staff_users (
   email            VARCHAR(255) NOT NULL UNIQUE,
   is_active        BOOLEAN NOT NULL DEFAULT TRUE,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT chk_staff_full_name_not_blank CHECK (LENGTH(BTRIM(full_name)) > 0),
+  CONSTRAINT chk_staff_email_not_blank CHECK (LENGTH(BTRIM(email)) > 0)
 );
 
 CREATE TABLE categories (
   id               BIGSERIAL PRIMARY KEY,
-  name             VARCHAR(80) NOT NULL UNIQUE,
+  name             VARCHAR(100) NOT NULL UNIQUE,
   description      VARCHAR(255),
   is_active        BOOLEAN NOT NULL DEFAULT TRUE,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT chk_category_name_not_blank CHECK (LENGTH(BTRIM(name)) > 0)
 );
 
 CREATE TABLE citizen_requests (
   id                   BIGSERIAL PRIMARY KEY,
-  title                VARCHAR(180) NOT NULL,
+  title                VARCHAR(100) NOT NULL,
   description          TEXT NOT NULL,
   category_id          BIGINT NOT NULL REFERENCES categories(id),
   priority             request_priority NOT NULL,
   status               request_status NOT NULL DEFAULT 'NEW',
-  citizen_name         VARCHAR(120),
+  citizen_name         VARCHAR(150),
   created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   assigned_to_user_id  BIGINT REFERENCES staff_users(id),
@@ -52,6 +57,9 @@ CREATE TABLE citizen_requests (
 
   CONSTRAINT chk_title_not_blank CHECK (LENGTH(BTRIM(title)) > 0),
   CONSTRAINT chk_desc_not_blank CHECK (LENGTH(BTRIM(description)) > 0),
+  CONSTRAINT chk_citizen_name_not_blank CHECK (
+    citizen_name IS NULL OR LENGTH(BTRIM(citizen_name)) > 0
+  ),
   CONSTRAINT chk_resolved_at_for_resolved_or_closed CHECK (
     (status IN ('RESOLVED', 'CLOSED') AND resolved_at IS NOT NULL)
     OR
@@ -92,8 +100,10 @@ CREATE INDEX idx_requests_status ON citizen_requests(status);
 CREATE INDEX idx_requests_category ON citizen_requests(category_id);
 CREATE INDEX idx_requests_priority ON citizen_requests(priority);
 CREATE INDEX idx_requests_assigned_to ON citizen_requests(assigned_to_user_id);
-CREATE INDEX idx_comments_request ON request_comments(request_id);
-CREATE INDEX idx_history_request ON request_status_history(request_id);
+CREATE INDEX idx_requests_created_at ON citizen_requests(created_at DESC);
+CREATE INDEX idx_requests_filter_combo ON citizen_requests(status, category_id, priority);
+CREATE INDEX idx_comments_request_created_at ON request_comments(request_id, created_at ASC);
+CREATE INDEX idx_history_request_changed_at ON request_status_history(request_id, changed_at ASC);
 
 -- Enforce allowed status transitions in history table.
 CREATE OR REPLACE FUNCTION validate_status_transition()
@@ -131,6 +141,45 @@ CREATE TRIGGER trg_validate_status_transition
 BEFORE INSERT ON request_status_history
 FOR EACH ROW
 EXECUTE FUNCTION validate_status_transition();
+
+-- Disallow any modifications of already CLOSED requests at DB level.
+CREATE OR REPLACE FUNCTION prevent_closed_request_updates()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF OLD.status = 'CLOSED' THEN
+    RAISE EXCEPTION 'CLOSED requests cannot be modified';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_prevent_closed_request_updates
+BEFORE UPDATE ON citizen_requests
+FOR EACH ROW
+EXECUTE FUNCTION prevent_closed_request_updates();
+
+-- Disallow adding comments to CLOSED requests at DB level.
+CREATE OR REPLACE FUNCTION prevent_comments_on_closed_requests()
+RETURNS TRIGGER AS $$
+DECLARE
+  current_status request_status;
+BEGIN
+  SELECT status INTO current_status
+  FROM citizen_requests
+  WHERE id = NEW.request_id;
+
+  IF current_status = 'CLOSED' THEN
+    RAISE EXCEPTION 'Cannot add comments to CLOSED requests';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_prevent_comments_on_closed_requests
+BEFORE INSERT ON request_comments
+FOR EACH ROW
+EXECUTE FUNCTION prevent_comments_on_closed_requests();
 
 -- Keep updated_at synced.
 CREATE OR REPLACE FUNCTION touch_updated_at()

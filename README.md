@@ -19,6 +19,12 @@ docker compose up -d db
 psql "postgresql://postgres:postgres@localhost:5432/citizen_requests" -f database/migrations/001_initial_schema.sql
 ```
 
+## Dev DB reset (drop + recreate schema + migrate)
+
+```bash
+./scripts/reset_db.sh
+```
+
 ## 3) Run backend
 
 ```bash
