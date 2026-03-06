@@ -3,7 +3,9 @@ from datetime import datetime, timezone
 from app.db.models.enums import RequestStatus
 
 
-def apply_status_timestamps(current_status: RequestStatus, new_status: RequestStatus) -> tuple[datetime | None, datetime | None]:
+def apply_status_timestamps(
+    current_status: RequestStatus, new_status: RequestStatus
+) -> tuple[datetime | None, datetime | None]:
     now = datetime.now(timezone.utc)
     resolved_at = None
     closed_at = None

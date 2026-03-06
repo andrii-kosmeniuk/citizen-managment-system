@@ -27,7 +27,9 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     let detail = `HTTP ${response.status}`;
     try {
       const body = await response.json();
-      if (body?.detail) {
+      if (body?.error?.message) {
+        detail = String(body.error.message);
+      } else if (body?.detail) {
         detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
       }
     } catch {

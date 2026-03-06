@@ -182,17 +182,17 @@ Must include:
 - [x] E2E/basic GUI test: verify blocked action on closed request.
 
 ### Phase 4: Integration, Quality, and Hardening
-- [ ] Validate frontend-backend integration end-to-end.
-- [ ] Standardize API contracts and error handling.
-- [ ] Add logging and basic observability for key operations.
-- [ ] Add lint/format/test commands and optional CI pipeline.
-- [ ] Optionally add static analysis and security scan tools.
+- [x] Validate frontend-backend integration end-to-end.
+- [x] Standardize API contracts and error handling.
+- [x] Add logging and basic observability for key operations.
+- [x] Add lint/format/test commands and optional CI pipeline.
+- [x] Optionally add static analysis and security scan tools.
 
 #### Test checkpoint after Phase 4 (Integration/Quality)
-- [ ] Full integration test suite passes.
-- [ ] Regression test for core workflow passes.
-- [ ] Security/static scans run (if enabled) without critical findings.
-- [ ] Startup/run/test commands are reproducible on a fresh environment.
+- [x] Full integration test suite passes.
+- [x] Regression test for core workflow passes.
+- [x] Security/static scans run (if enabled) without critical findings.
+- [x] Startup/run/test commands are reproducible on a fresh environment.
 
 ### Phase 5: Documentation & Submission Packaging
 - [ ] Complete `docs/specification.md` with SDD artifacts and assumptions.

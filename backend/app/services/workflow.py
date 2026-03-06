@@ -1,6 +1,5 @@
 from app.db.models.enums import RequestStatus
 
-
 _ALLOWED_TRANSITIONS: dict[RequestStatus, set[RequestStatus]] = {
     RequestStatus.NEW: {RequestStatus.IN_PROGRESS, RequestStatus.CLARIFICATION_NEEDED},
     RequestStatus.IN_PROGRESS: {RequestStatus.CLARIFICATION_NEEDED, RequestStatus.RESOLVED},

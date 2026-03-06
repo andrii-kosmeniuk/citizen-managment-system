@@ -3,11 +3,13 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.logging import get_logger
 from app.db.models.category import Category
 from app.db.session import get_db
 from app.schemas.category import CategoryCreate, CategoryRead, CategoryUpdate
 
 router = APIRouter(prefix="/categories", tags=["categories"])
+logger = get_logger(__name__)
 
 
 @router.get("", response_model=list[CategoryRead])
@@ -31,6 +33,7 @@ def create_category(payload: CategoryCreate, db: Session = Depends(get_db)) -> C
         db.rollback()
         raise HTTPException(status_code=409, detail="Category name must be unique") from exc
     db.refresh(category)
+    logger.info("category_created category_id=%s", category.id)
     return category
 
 
@@ -56,6 +59,7 @@ def update_category(category_id: int, payload: CategoryUpdate, db: Session = Dep
         db.rollback()
         raise HTTPException(status_code=409, detail="Category name must be unique") from exc
     db.refresh(category)
+    logger.info("category_updated category_id=%s", category_id)
     return category
 
 
@@ -67,3 +71,4 @@ def deactivate_category(category_id: int, db: Session = Depends(get_db)) -> None
 
     category.is_active = False
     db.commit()
+    logger.info("category_deactivated category_id=%s", category_id)

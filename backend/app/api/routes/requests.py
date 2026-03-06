@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.logging import get_logger
 from app.db.models.category import Category
 from app.db.models.comment import RequestComment
 from app.db.models.request import CitizenRequest
@@ -24,6 +25,7 @@ from app.services.request_service import apply_status_timestamps
 from app.services.workflow import is_valid_transition
 
 router = APIRouter(prefix="/requests", tags=["requests"])
+logger = get_logger(__name__)
 
 
 def _require_user(db: Session, user_id: int) -> StaffUser:
@@ -95,6 +97,7 @@ def create_request(payload: RequestCreate, db: Session = Depends(get_db)) -> Cit
     )
     db.add(request)
     db.flush()
+    logger.info("request_created id=%s creator_user_id=%s", request.id, payload.creator_user_id)
 
     db.add(
         RequestStatusHistory(
@@ -147,6 +150,7 @@ def claim_request(request_id: int, payload: RequestClaim, db: Session = Depends(
         raise HTTPException(status_code=409, detail="Closed request cannot be modified")
 
     req.assigned_to_user_id = payload.actor_user_id
+    logger.info("request_claimed request_id=%s actor_user_id=%s", request_id, payload.actor_user_id)
     try:
         db.commit()
     except IntegrityError as exc:
@@ -189,6 +193,13 @@ def update_status(request_id: int, payload: RequestStatusUpdate, db: Session = D
             changed_at=datetime.now(timezone.utc),
         )
     )
+    logger.info(
+        "request_status_updated request_id=%s from_status=%s to_status=%s actor_user_id=%s",
+        request_id,
+        from_status.value,
+        payload.to_status.value,
+        payload.actor_user_id,
+    )
 
     try:
         db.commit()
@@ -217,6 +228,7 @@ def add_comment(request_id: int, payload: CommentCreate, db: Session = Depends(g
         comment_text=comment_text,
     )
     db.add(comment)
+    logger.info("request_comment_added request_id=%s author_user_id=%s", request_id, payload.author_user_id)
     try:
         db.commit()
     except IntegrityError as exc:

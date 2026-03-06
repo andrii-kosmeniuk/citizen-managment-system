@@ -54,3 +54,29 @@ npm run dev
 - `POST /requests/{id}/claim`
 - `PATCH /requests/{id}/status`
 - `POST /requests/{id}/comments`
+
+## Quality checks
+
+Backend checks:
+
+```bash
+./scripts/check_backend.sh
+```
+
+Frontend checks:
+
+```bash
+./scripts/check_frontend.sh
+```
+
+Run all checks:
+
+```bash
+./scripts/check_all.sh
+```
+
+Optional security scan (if `trivy` is installed):
+
+```bash
+./scripts/security_scan.sh
+```
