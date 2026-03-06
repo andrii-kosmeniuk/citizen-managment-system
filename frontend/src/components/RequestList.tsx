@@ -2,15 +2,17 @@ import type { CitizenRequest } from "../types/request";
 
 interface Props {
   requests: CitizenRequest[];
+  selectedRequestId: number | null;
+  onSelect: (requestId: number) => void;
 }
 
-export function RequestList({ requests }: Props) {
+export function RequestList({ requests, selectedRequestId, onSelect }: Props) {
   if (requests.length === 0) {
     return <p>No requests found.</p>;
   }
 
   return (
-    <table>
+    <table style={{ width: "100%", borderCollapse: "collapse" }}>
       <thead>
         <tr>
           <th>ID</th>
@@ -21,7 +23,15 @@ export function RequestList({ requests }: Props) {
       </thead>
       <tbody>
         {requests.map((item) => (
-          <tr key={item.id}>
+          <tr
+            key={item.id}
+            data-testid={`request-row-${item.id}`}
+            onClick={() => onSelect(item.id)}
+            style={{
+              cursor: "pointer",
+              background: selectedRequestId === item.id ? "#eef6ff" : "transparent",
+            }}
+          >
             <td>{item.id}</td>
             <td>{item.title}</td>
             <td>{item.status}</td>

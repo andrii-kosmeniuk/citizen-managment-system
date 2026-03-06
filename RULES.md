@@ -166,20 +166,20 @@ Must include:
 - [x] Verify filtering works (`status/category/priority`).
 
 ### Phase 3: Frontend Implementation
-- [ ] Build dashboard list view for all requests.
-- [ ] Implement filter UI (status/category/priority) and backend query integration.
-- [ ] Build request detail page with comments and status history.
-- [ ] Implement actions: claim request, change status, add comment.
-- [ ] Add loading/error/empty states.
-- [ ] Ensure responsive behavior on desktop and mobile.
+- [x] Build dashboard list view for all requests.
+- [x] Implement filter UI (status/category/priority) and backend query integration.
+- [x] Build request detail page with comments and status history.
+- [x] Implement actions: claim request, change status, add comment.
+- [x] Add loading/error/empty states.
+- [x] Ensure responsive behavior on desktop and mobile.
 
 #### Test checkpoint after Phase 3 (Frontend)
-- [ ] Component tests for key UI blocks (list, filters, detail, status form, comment form).
-- [ ] E2E/basic GUI test: create request.
-- [ ] E2E/basic GUI test: claim request.
-- [ ] E2E/basic GUI test: run status change sequence.
-- [ ] E2E/basic GUI test: add comment.
-- [ ] E2E/basic GUI test: verify blocked action on closed request.
+- [x] Component tests for key UI blocks (list, filters, detail, status form, comment form).
+- [x] E2E/basic GUI test: create request.
+- [x] E2E/basic GUI test: claim request.
+- [x] E2E/basic GUI test: run status change sequence.
+- [x] E2E/basic GUI test: add comment.
+- [x] E2E/basic GUI test: verify blocked action on closed request.
 
 ### Phase 4: Integration, Quality, and Hardening
 - [ ] Validate frontend-backend integration end-to-end.
