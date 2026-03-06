@@ -2,8 +2,10 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.db.models.category import Category
 from app.db.models.comment import RequestComment
 from app.db.models.request import CitizenRequest
 from app.db.models.status_history import RequestStatusHistory
@@ -38,6 +40,13 @@ def _require_request(db: Session, request_id: int) -> CitizenRequest:
     return req
 
 
+def _require_category(db: Session, category_id: int) -> Category:
+    category = db.get(Category, category_id)
+    if not category:
+        raise HTTPException(status_code=404, detail=f"Category {category_id} not found")
+    return category
+
+
 @router.get("", response_model=list[RequestRead])
 def list_requests(
     status_filter: RequestStatus | None = Query(default=None, alias="status"),
@@ -60,13 +69,24 @@ def list_requests(
 @router.post("", response_model=RequestRead, status_code=status.HTTP_201_CREATED)
 def create_request(payload: RequestCreate, db: Session = Depends(get_db)) -> CitizenRequest:
     _require_user(db, payload.creator_user_id)
+    _require_category(db, payload.category_id)
+
+    title = payload.title.strip()
+    description = payload.description.strip()
+    citizen_name = payload.citizen_name.strip() if payload.citizen_name else None
+    if not title:
+        raise HTTPException(status_code=422, detail="title must not be blank")
+    if not description:
+        raise HTTPException(status_code=422, detail="description must not be blank")
+    if citizen_name == "":
+        citizen_name = None
 
     request = CitizenRequest(
-        title=payload.title.strip(),
-        description=payload.description.strip(),
+        title=title,
+        description=description,
         category_id=payload.category_id,
         priority=payload.priority,
-        citizen_name=payload.citizen_name,
+        citizen_name=citizen_name,
         status=RequestStatus.NEW,
     )
     db.add(request)
@@ -82,7 +102,11 @@ def create_request(payload: RequestCreate, db: Session = Depends(get_db)) -> Cit
         )
     )
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Could not create request due to data integrity rules") from exc
     db.refresh(request)
     return request
 
@@ -119,7 +143,11 @@ def claim_request(request_id: int, payload: RequestClaim, db: Session = Depends(
         raise HTTPException(status_code=409, detail="Closed request cannot be modified")
 
     req.assigned_to_user_id = payload.actor_user_id
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Could not claim request due to data integrity rules") from exc
     db.refresh(req)
     return req
 
@@ -158,7 +186,11 @@ def update_status(request_id: int, payload: RequestStatusUpdate, db: Session = D
         )
     )
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Status change violates data integrity rules") from exc
     db.refresh(req)
     return req
 
@@ -171,12 +203,20 @@ def add_comment(request_id: int, payload: CommentCreate, db: Session = Depends(g
     if req.status == RequestStatus.CLOSED:
         raise HTTPException(status_code=409, detail="Closed request cannot be modified")
 
+    comment_text = payload.comment_text.strip()
+    if not comment_text:
+        raise HTTPException(status_code=422, detail="comment_text must not be blank")
+
     comment = RequestComment(
         request_id=request_id,
         author_user_id=payload.author_user_id,
-        comment_text=payload.comment_text.strip(),
+        comment_text=comment_text,
     )
     db.add(comment)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Could not add comment due to data integrity rules") from exc
     db.refresh(comment)
     return comment

@@ -150,20 +150,20 @@ Must include:
 - [x] Verify updates/comments on closed requests fail.
 
 ### Phase 2: Backend Domain & API
-- [ ] Implement DB/ORM models mapped to actual schema names.
-- [ ] Implement service layer for business rules (claim, transition, history write, closed-lock behavior).
-- [ ] Implement category REST endpoints (list/create/update/deactivate).
-- [ ] Implement request REST endpoints (create/list/detail).
-- [ ] Implement request action endpoints (claim/status change/add comment).
-- [ ] Implement request validation and consistent error responses.
-- [ ] Add health endpoint and config loading.
+- [x] Implement DB/ORM models mapped to actual schema names.
+- [x] Implement service layer for business rules (claim, transition, history write, closed-lock behavior).
+- [x] Implement category REST endpoints (list/create/update/deactivate).
+- [x] Implement request REST endpoints (create/list/detail).
+- [x] Implement request action endpoints (claim/status change/add comment).
+- [x] Implement request validation and consistent error responses.
+- [x] Add health endpoint and config loading.
 
 #### Test checkpoint after Phase 2 (Backend)
-- [ ] Unit tests for workflow logic and service methods.
-- [ ] API tests for each endpoint (happy path + invalid input + forbidden transition).
-- [ ] Verify status history is written for each status change.
-- [ ] Verify closed requests are immutable via API.
-- [ ] Verify filtering works (`status/category/priority`).
+- [x] Unit tests for workflow logic and service methods.
+- [x] API tests for each endpoint (happy path + invalid input + forbidden transition).
+- [x] Verify status history is written for each status change.
+- [x] Verify closed requests are immutable via API.
+- [x] Verify filtering works (`status/category/priority`).
 
 ### Phase 3: Frontend Implementation
 - [ ] Build dashboard list view for all requests.

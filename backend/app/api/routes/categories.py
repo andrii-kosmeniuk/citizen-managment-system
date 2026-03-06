@@ -20,7 +20,10 @@ def list_categories(active_only: bool = Query(default=False), db: Session = Depe
 
 @router.post("", response_model=CategoryRead, status_code=status.HTTP_201_CREATED)
 def create_category(payload: CategoryCreate, db: Session = Depends(get_db)) -> Category:
-    category = Category(name=payload.name.strip(), description=payload.description)
+    name = payload.name.strip()
+    if not name:
+        raise HTTPException(status_code=422, detail="name must not be blank")
+    category = Category(name=name, description=payload.description)
     db.add(category)
     try:
         db.commit()
@@ -38,7 +41,10 @@ def update_category(category_id: int, payload: CategoryUpdate, db: Session = Dep
         raise HTTPException(status_code=404, detail="Category not found")
 
     if payload.name is not None:
-        category.name = payload.name.strip()
+        name = payload.name.strip()
+        if not name:
+            raise HTTPException(status_code=422, detail="name must not be blank")
+        category.name = name
     if payload.description is not None:
         category.description = payload.description
     if payload.is_active is not None:
