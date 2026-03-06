@@ -18,7 +18,8 @@ class CitizenRequest(Base):
     status: Mapped[RequestStatus] = mapped_column(
         Enum(RequestStatus, name="request_status"), nullable=False, default=RequestStatus.NEW, server_default="NEW"
     )
-    citizen_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    citizen_first_name: Mapped[str] = mapped_column(String(50), nullable=False)
+    citizen_last_name: Mapped[str] = mapped_column(String(50), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     assigned_to_user_id: Mapped[int | None] = mapped_column(ForeignKey("staff_user.id"), nullable=True)

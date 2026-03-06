@@ -58,7 +58,8 @@ def test_requests_end_to_end_all_actions(client, db_session):
             "description": "Stop sign damaged",
             "category_id": category_id,
             "priority": "HIGH",
-            "citizen_name": "Jane Citizen",
+            "citizen_first_name": "Jane",
+            "citizen_last_name": "Citizen",
         },
     )
     assert created.status_code == 201
@@ -140,6 +141,8 @@ def test_requests_invalid_transition_returns_409(client, db_session):
             "description": "Illegal garbage in park",
             "category_id": category.json()["id"],
             "priority": "MEDIUM",
+            "citizen_first_name": "Gary",
+            "citizen_last_name": "Citizen",
         },
     )
     assert created.status_code == 201
@@ -165,6 +168,8 @@ def test_validation_and_not_found_errors(client, db_session):
             "description": "y",
             "category_id": 1,
             "priority": "LOW",
+            "citizen_first_name": "Missing",
+            "citizen_last_name": "User",
         },
     )
     assert missing_user.status_code == 404
@@ -180,6 +185,8 @@ def test_validation_and_not_found_errors(client, db_session):
             "description": "desc",
             "category_id": category.json()["id"],
             "priority": "LOW",
+            "citizen_first_name": "Blank",
+            "citizen_last_name": "Title",
         },
     )
     assert bad_request.status_code == 422
@@ -195,6 +202,8 @@ def test_validation_and_not_found_errors(client, db_session):
             "description": "Open for validation",
             "category_id": category.json()["id"],
             "priority": "LOW",
+            "citizen_first_name": "Open",
+            "citizen_last_name": "Citizen",
         },
     )
     assert req.status_code == 201

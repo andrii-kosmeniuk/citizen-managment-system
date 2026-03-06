@@ -96,6 +96,9 @@ export function RequestDetailPage({ requestId, onDataChanged }: Props) {
       </h2>
       <p>{detail.request.description}</p>
       <p>
+        <strong>Citizen:</strong> {detail.request.citizen_first_name} {detail.request.citizen_last_name}
+      </p>
+      <p>
         <strong>Status:</strong> {detail.request.status}
       </p>
       <p>

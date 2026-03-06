@@ -50,7 +50,8 @@ CREATE TABLE citizen_request (
   category_id          BIGINT NOT NULL REFERENCES category(id),
   priority             request_priority NOT NULL,
   status               request_status NOT NULL DEFAULT 'NEW',
-  citizen_name         VARCHAR(150),
+  citizen_first_name   VARCHAR(50) NOT NULL,
+  citizen_last_name    VARCHAR(50) NOT NULL,
   created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   assigned_to_user_id  BIGINT REFERENCES staff_user(id),
@@ -59,9 +60,8 @@ CREATE TABLE citizen_request (
 
   CONSTRAINT chk_title_not_blank CHECK (LENGTH(BTRIM(title)) > 0),
   CONSTRAINT chk_desc_not_blank CHECK (LENGTH(BTRIM(description)) > 0),
-  CONSTRAINT chk_citizen_name_not_blank CHECK (
-    citizen_name IS NULL OR LENGTH(BTRIM(citizen_name)) > 0
-  ),
+  CONSTRAINT chk_citizen_first_name_not_blank CHECK (LENGTH(BTRIM(citizen_first_name)) > 0),
+  CONSTRAINT chk_citizen_last_name_not_blank CHECK (LENGTH(BTRIM(citizen_last_name)) > 0),
   CONSTRAINT chk_resolved_at_for_resolved_or_closed CHECK (
     (status IN ('RESOLVED', 'CLOSED') AND resolved_at IS NOT NULL)
     OR

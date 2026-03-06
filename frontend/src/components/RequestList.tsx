@@ -17,6 +17,7 @@ export function RequestList({ requests, selectedRequestId, onSelect }: Props) {
         <tr>
           <th>ID</th>
           <th>Title</th>
+          <th>Citizen</th>
           <th>Status</th>
           <th>Priority</th>
         </tr>
@@ -34,6 +35,9 @@ export function RequestList({ requests, selectedRequestId, onSelect }: Props) {
           >
             <td>{item.id}</td>
             <td>{item.title}</td>
+            <td>
+              {item.citizen_first_name} {item.citizen_last_name}
+            </td>
             <td>{item.status}</td>
             <td>{item.priority}</td>
           </tr>

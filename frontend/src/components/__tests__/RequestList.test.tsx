@@ -10,6 +10,8 @@ const requests = [
     category_id: 1,
     priority: "HIGH" as const,
     status: "NEW" as const,
+    citizen_first_name: "Jane",
+    citizen_last_name: "Citizen",
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
   },

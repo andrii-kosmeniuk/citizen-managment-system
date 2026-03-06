@@ -24,6 +24,8 @@ vi.mock("../../api/client", () => {
         category_id: 1,
         priority: "HIGH",
         status: currentStatus,
+        citizen_first_name: "Jane",
+        citizen_last_name: "Citizen",
         assigned_to_user_id: 2,
         created_at: "2026-01-01T00:00:00Z",
         updated_at: "2026-01-01T00:00:00Z",
@@ -37,6 +39,8 @@ vi.mock("../../api/client", () => {
         category_id: 1,
         priority: "HIGH",
         status: currentStatus,
+        citizen_first_name: "Jane",
+        citizen_last_name: "Citizen",
         assigned_to_user_id: 2,
         created_at: "2026-01-01T00:00:00Z",
         updated_at: "2026-01-01T00:00:00Z",
@@ -86,6 +90,8 @@ test("basic dashboard user flow works", async () => {
 
   fireEvent.change(screen.getByTestId("create-title"), { target: { value: "Pothole" } });
   fireEvent.change(screen.getByTestId("create-description"), { target: { value: "Large pothole" } });
+  fireEvent.change(screen.getByTestId("create-citizen-first-name"), { target: { value: "Max" } });
+  fireEvent.change(screen.getByTestId("create-citizen-last-name"), { target: { value: "Muster" } });
   fireEvent.click(screen.getByTestId("create-submit"));
 
   fireEvent.click(screen.getByTestId("claim-submit"));

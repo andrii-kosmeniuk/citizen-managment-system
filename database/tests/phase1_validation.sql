@@ -14,8 +14,16 @@ VALUES
   ('Infrastructure', 'Roads and lights');
 
 -- Happy path request insert
-INSERT INTO citizen_request (title, description, category_id, priority, status, citizen_name)
-VALUES ('Broken street light', 'Lamp not working on Main St.', 1, 'MEDIUM', 'NEW', 'Max Mustermann');
+INSERT INTO citizen_request (
+  title,
+  description,
+  category_id,
+  priority,
+  status,
+  citizen_first_name,
+  citizen_last_name
+)
+VALUES ('Broken street light', 'Lamp not working on Main St.', 1, 'MEDIUM', 'NEW', 'Max', 'Mustermann');
 
 -- Initial status history
 INSERT INTO request_status_history (request_id, from_status, to_status, changed_by_user_id, change_note)
@@ -25,8 +33,8 @@ VALUES (1, NULL, 'NEW', 1, 'Initial status');
 DO $$
 BEGIN
   BEGIN
-    INSERT INTO citizen_request (title, description, category_id, priority, status)
-    VALUES ('Invalid category ref', 'Should fail', 9999, 'LOW', 'NEW');
+    INSERT INTO citizen_request (title, description, category_id, priority, status, citizen_first_name, citizen_last_name)
+    VALUES ('Invalid category ref', 'Should fail', 9999, 'LOW', 'NEW', 'Max', 'Mustermann');
     RAISE EXCEPTION 'Expected FK violation for invalid category_id';
   EXCEPTION
     WHEN foreign_key_violation THEN
@@ -39,7 +47,7 @@ $$;
 DO $$
 BEGIN
   BEGIN
-    EXECUTE 'INSERT INTO citizen_request (title, description, category_id, priority, status) VALUES (''Invalid enum'', ''Should fail'', 1, ''INVALID_PRIORITY'', ''NEW'')';
+    EXECUTE 'INSERT INTO citizen_request (title, description, category_id, priority, status, citizen_first_name, citizen_last_name) VALUES (''Invalid enum'', ''Should fail'', 1, ''INVALID_PRIORITY'', ''NEW'', ''Max'', ''Mustermann'')';
     RAISE EXCEPTION 'Expected enum validation failure for priority';
   EXCEPTION
     WHEN invalid_text_representation THEN

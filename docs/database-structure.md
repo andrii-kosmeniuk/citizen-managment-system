@@ -32,7 +32,8 @@ This schema supports the Citizen Request Management System requirements.
   - `category_id` foreign key to `category`
   - `priority` enum: `LOW | MEDIUM | HIGH | CRITICAL`
   - `status` enum: `NEW | IN_PROGRESS | CLARIFICATION_NEEDED | RESOLVED | CLOSED`
-  - `citizen_name` (optional)
+  - `citizen_first_name` `VARCHAR(50)` (required)
+  - `citizen_last_name` `VARCHAR(50)` (required)
   - `assigned_to_user_id` foreign key to `staff_user`
   - `resolved_at`, `closed_at`
   - `created_at`, `updated_at`

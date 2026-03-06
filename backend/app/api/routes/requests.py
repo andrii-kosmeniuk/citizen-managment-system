@@ -73,20 +73,24 @@ def create_request(payload: RequestCreate, db: Session = Depends(get_db)) -> Cit
 
     title = payload.title.strip()
     description = payload.description.strip()
-    citizen_name = payload.citizen_name.strip() if payload.citizen_name else None
+    citizen_first_name = payload.citizen_first_name.strip()
+    citizen_last_name = payload.citizen_last_name.strip()
     if not title:
         raise HTTPException(status_code=422, detail="title must not be blank")
     if not description:
         raise HTTPException(status_code=422, detail="description must not be blank")
-    if citizen_name == "":
-        citizen_name = None
+    if not citizen_first_name:
+        raise HTTPException(status_code=422, detail="citizen_first_name must not be blank")
+    if not citizen_last_name:
+        raise HTTPException(status_code=422, detail="citizen_last_name must not be blank")
 
     request = CitizenRequest(
         title=title,
         description=description,
         category_id=payload.category_id,
         priority=payload.priority,
-        citizen_name=citizen_name,
+        citizen_first_name=citizen_first_name,
+        citizen_last_name=citizen_last_name,
         status=RequestStatus.NEW,
     )
     db.add(request)

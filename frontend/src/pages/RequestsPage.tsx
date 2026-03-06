@@ -27,7 +27,8 @@ export function RequestsPage() {
     description: "",
     category_id: 0,
     priority: "MEDIUM",
-    citizen_name: "",
+    citizen_first_name: "",
+    citizen_last_name: "",
   });
 
   const loadCategories = async () => {
@@ -75,11 +76,18 @@ export function RequestsPage() {
     try {
       const created = await createRequest({
         ...createForm,
-        citizen_name: createForm.citizen_name?.trim() || undefined,
+        citizen_first_name: createForm.citizen_first_name.trim(),
+        citizen_last_name: createForm.citizen_last_name.trim(),
       });
       await loadRequests(filters);
       setSelectedRequestId(created.id);
-      setCreateForm((prev) => ({ ...prev, title: "", description: "", citizen_name: "" }));
+      setCreateForm((prev) => ({
+        ...prev,
+        title: "",
+        description: "",
+        citizen_first_name: "",
+        citizen_last_name: "",
+      }));
     } catch (err) {
       setError((err as Error).message);
     }
@@ -107,10 +115,16 @@ export function RequestsPage() {
             placeholder="Title"
           />
           <input
-            data-testid="create-citizen-name"
-            value={createForm.citizen_name ?? ""}
-            onChange={(e) => setCreateForm((prev) => ({ ...prev, citizen_name: e.target.value }))}
-            placeholder="Citizen Name (optional)"
+            data-testid="create-citizen-first-name"
+            value={createForm.citizen_first_name}
+            onChange={(e) => setCreateForm((prev) => ({ ...prev, citizen_first_name: e.target.value }))}
+            placeholder="Citizen First Name"
+          />
+          <input
+            data-testid="create-citizen-last-name"
+            value={createForm.citizen_last_name}
+            onChange={(e) => setCreateForm((prev) => ({ ...prev, citizen_last_name: e.target.value }))}
+            placeholder="Citizen Last Name"
           />
           <textarea
             data-testid="create-description"

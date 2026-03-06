@@ -12,7 +12,8 @@ class RequestCreate(BaseModel):
     description: str
     category_id: int
     priority: RequestPriority
-    citizen_name: str | None = None
+    citizen_first_name: str
+    citizen_last_name: str
 
 
 class RequestStatusUpdate(BaseModel):
@@ -34,7 +35,8 @@ class RequestRead(BaseModel):
     category_id: int
     priority: RequestPriority
     status: RequestStatus
-    citizen_name: str | None
+    citizen_first_name: str
+    citizen_last_name: str
     assigned_to_user_id: int | None
     resolved_at: datetime | None
     closed_at: datetime | None
