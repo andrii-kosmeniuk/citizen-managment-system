@@ -129,10 +129,12 @@ WHERE r.title = 'Traffic light timing issue'
       AND h.to_status = 'IN_PROGRESS'
   );
 
-INSERT INTO request_comment (request_id, author_user_id, comment_text)
+INSERT INTO request_comment (request_id, author_user_id, author_role, author_display_name, comment_text)
 SELECT
   r.id,
   u.id,
+  'WORKER',
+  CONCAT(u.first_name, ' ', u.last_name),
   'Team scheduled onsite inspection for tomorrow.'
 FROM citizen_request r
 JOIN staff_user u ON u.email = 'sofia.keller@city.example'

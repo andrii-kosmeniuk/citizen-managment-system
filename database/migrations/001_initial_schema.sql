@@ -84,11 +84,20 @@ CREATE TABLE citizen_request (
 CREATE TABLE request_comment (
   id               BIGSERIAL PRIMARY KEY,
   request_id       BIGINT NOT NULL REFERENCES citizen_request(id) ON DELETE CASCADE,
-  author_user_id   BIGINT NOT NULL REFERENCES staff_user(id),
+  author_user_id   BIGINT REFERENCES staff_user(id),
+  author_role      VARCHAR(20) NOT NULL,
+  author_display_name VARCHAR(150) NOT NULL,
   comment_text     TEXT NOT NULL,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  CONSTRAINT chk_comment_not_blank CHECK (LENGTH(BTRIM(comment_text)) > 0)
+  CONSTRAINT chk_comment_not_blank CHECK (LENGTH(BTRIM(comment_text)) > 0),
+  CONSTRAINT chk_comment_author_role CHECK (author_role IN ('CITIZEN', 'WORKER')),
+  CONSTRAINT chk_comment_author_display_name_not_blank CHECK (LENGTH(BTRIM(author_display_name)) > 0),
+  CONSTRAINT chk_comment_author_by_role CHECK (
+    (author_role = 'WORKER' AND author_user_id IS NOT NULL)
+    OR
+    (author_role = 'CITIZEN' AND author_user_id IS NULL)
+  )
 );
 
 CREATE TABLE request_status_history (

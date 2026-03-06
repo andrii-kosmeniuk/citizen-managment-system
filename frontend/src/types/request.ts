@@ -37,7 +37,9 @@ export interface RequestStatusHistoryItem {
 export interface RequestCommentItem {
   id: number;
   request_id: number;
-  author_user_id: number;
+  author_user_id?: number | null;
+  author_role: string;
+  author_display_name: string;
   comment_text: string;
   created_at: string;
 }

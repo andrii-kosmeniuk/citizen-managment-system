@@ -1,14 +1,17 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import { RequestsPage } from "../RequestsPage";
+import type { RequestCommentItem } from "../../types/request";
 
 vi.mock("../../api/client", () => {
   let currentStatus = "NEW";
-  let comments = [
+  let comments: RequestCommentItem[] = [
     {
       id: 1,
       request_id: 1,
       author_user_id: 1,
+      author_role: "WORKER",
+      author_display_name: "Worker One",
       comment_text: "Initial",
       created_at: "2026-01-01T00:00:00Z",
     },
@@ -62,8 +65,8 @@ vi.mock("../../api/client", () => {
     claimRequest: vi.fn().mockResolvedValue({}),
     updateRequestStatus: vi.fn().mockImplementation(
       async (_role: string, _id: number, _actor: number, to: string) => {
-      currentStatus = to;
-      return {};
+        currentStatus = to;
+        return {};
       },
     ),
     addRequestComment: vi.fn().mockImplementation(async () => {
@@ -75,7 +78,9 @@ vi.mock("../../api/client", () => {
         {
           id: comments.length + 1,
           request_id: 1,
-          author_user_id: 1,
+          author_user_id: null,
+          author_role: "CITIZEN",
+          author_display_name: "Jane Citizen",
           comment_text: "new comment",
           created_at: "2026-01-01T00:00:00Z",
         },

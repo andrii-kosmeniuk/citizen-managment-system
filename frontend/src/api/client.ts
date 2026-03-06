@@ -99,12 +99,16 @@ export async function updateRequestStatus(
 export async function addRequestComment(
   role: ActorRole,
   requestId: number,
-  authorUserId: number,
+  authorUserId: number | undefined,
   commentText: string,
 ): Promise<void> {
+  const body: Record<string, unknown> = { comment_text: commentText };
+  if (typeof authorUserId === "number") {
+    body.author_user_id = authorUserId;
+  }
   await fetchJson(`${API_BASE}/requests/${requestId}/comments`, role, {
     method: "POST",
-    body: JSON.stringify({ author_user_id: authorUserId, comment_text: commentText }),
+    body: JSON.stringify(body),
   });
 }
 

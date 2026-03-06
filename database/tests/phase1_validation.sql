@@ -109,8 +109,8 @@ $$;
 DO $$
 BEGIN
   BEGIN
-    INSERT INTO request_comment (request_id, author_user_id, comment_text)
-    VALUES (1, 2, 'Should not be accepted');
+    INSERT INTO request_comment (request_id, author_user_id, author_role, author_display_name, comment_text)
+    VALUES (1, 2, 'WORKER', 'Bob Worker', 'Should not be accepted');
     RAISE EXCEPTION 'Expected comment rejection for CLOSED request';
   EXCEPTION
     WHEN raise_exception THEN

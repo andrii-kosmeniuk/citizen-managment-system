@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import require_worker
+from app.api.dependencies.auth import ActorRole, get_actor_role, require_worker
 from app.core.logging import get_logger
 from app.db.models.category import Category
 from app.db.models.comment import RequestComment
@@ -216,9 +216,13 @@ def update_status(
 
 
 @router.post("/{request_id}/comments", response_model=CommentRead, status_code=status.HTTP_201_CREATED)
-def add_comment(request_id: int, payload: CommentCreate, db: Session = Depends(get_db)) -> RequestComment:
+def add_comment(
+    request_id: int,
+    payload: CommentCreate,
+    db: Session = Depends(get_db),
+    actor_role: ActorRole = Depends(get_actor_role),
+) -> RequestComment:
     req = _require_request(db, request_id)
-    _require_user(db, payload.author_user_id)
 
     if req.status == RequestStatus.CLOSED:
         raise HTTPException(status_code=409, detail="Closed request cannot be modified")
@@ -227,13 +231,32 @@ def add_comment(request_id: int, payload: CommentCreate, db: Session = Depends(g
     if not comment_text:
         raise HTTPException(status_code=422, detail="comment_text must not be blank")
 
+    if actor_role == "worker":
+        if payload.author_user_id is None:
+            raise HTTPException(status_code=422, detail="author_user_id is required for worker comments")
+        author = _require_user(db, payload.author_user_id)
+        author_user_id = author.id
+        author_role_value = "WORKER"
+        author_display_name = f"{author.first_name} {author.last_name}"
+    else:
+        author_user_id = None
+        author_role_value = "CITIZEN"
+        author_display_name = f"{req.citizen_first_name} {req.citizen_last_name}"
+
     comment = RequestComment(
         request_id=request_id,
-        author_user_id=payload.author_user_id,
+        author_user_id=author_user_id,
+        author_role=author_role_value,
+        author_display_name=author_display_name,
         comment_text=comment_text,
     )
     db.add(comment)
-    logger.info("request_comment_added request_id=%s author_user_id=%s", request_id, payload.author_user_id)
+    logger.info(
+        "request_comment_added request_id=%s actor_role=%s author_user_id=%s",
+        request_id,
+        actor_role,
+        author_user_id,
+    )
     try:
         db.commit()
     except IntegrityError as exc:

@@ -80,7 +80,7 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
     }
   };
 
-  const handleCommentSubmit = async (authorUserId: number, commentText: string) => {
+  const handleCommentSubmit = async (authorUserId: number | undefined, commentText: string) => {
     setError(null);
     try {
       await addRequestComment(actorRole, requestId, authorUserId, commentText);
@@ -128,7 +128,7 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
           <StatusChanger onSubmit={handleStatusSubmit} disabled={isClosed} />
         </>
       )}
-      <CommentBox onSubmit={handleCommentSubmit} disabled={isClosed} />
+      <CommentBox role={actorRole} onSubmit={handleCommentSubmit} disabled={isClosed} />
 
       <h3>Comments</h3>
       {detail.comments.length === 0 ? (
@@ -137,7 +137,8 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
         <ul>
           {detail.comments.map((comment) => (
             <li key={comment.id}>
-              [{new Date(comment.created_at).toLocaleString()}] User {comment.author_user_id}: {comment.comment_text}
+              [{new Date(comment.created_at).toLocaleString()}] {comment.author_display_name}
+              ({comment.author_role === "CITIZEN" ? "Citizen" : "Worker"}): {comment.comment_text}
             </li>
           ))}
         </ul>
