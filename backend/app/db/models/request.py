@@ -30,3 +30,9 @@ class CitizenRequest(Base):
     assignee = relationship("StaffUser", back_populates="assigned_requests")
     comments = relationship("RequestComment", back_populates="request", cascade="all, delete-orphan")
     status_changes = relationship("RequestStatusHistory", back_populates="request", cascade="all, delete-orphan")
+
+    @property
+    def assigned_to_display_name(self) -> str | None:
+        if self.assignee is None:
+            return None
+        return f"{self.assignee.first_name} {self.assignee.last_name}"

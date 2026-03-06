@@ -18,6 +18,7 @@ export interface CitizenRequest {
   citizen_first_name: string;
   citizen_last_name: string;
   assigned_to_user_id?: number | null;
+  assigned_to_display_name?: string | null;
   resolved_at?: string | null;
   closed_at?: string | null;
   created_at: string;
@@ -30,6 +31,7 @@ export interface RequestStatusHistoryItem {
   from_status: RequestStatus | null;
   to_status: RequestStatus;
   changed_by_user_id: number;
+  changed_by_display_name?: string | null;
   change_note?: string | null;
   changed_at: string;
 }

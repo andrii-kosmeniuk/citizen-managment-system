@@ -19,3 +19,10 @@ class RequestStatusHistory(Base):
     changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     request = relationship("CitizenRequest", back_populates="status_changes")
+    changed_by = relationship("StaffUser")
+
+    @property
+    def changed_by_display_name(self) -> str | None:
+        if self.changed_by is None:
+            return None
+        return f"{self.changed_by.first_name} {self.changed_by.last_name}"

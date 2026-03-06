@@ -38,6 +38,7 @@ class RequestRead(BaseModel):
     citizen_first_name: str
     citizen_last_name: str
     assigned_to_user_id: int | None
+    assigned_to_display_name: str | None = None
     resolved_at: datetime | None
     closed_at: datetime | None
     created_at: datetime
@@ -52,6 +53,7 @@ class RequestStatusHistoryRead(BaseModel):
     from_status: RequestStatus | None
     to_status: RequestStatus
     changed_by_user_id: int
+    changed_by_display_name: str | None = None
     change_note: str | None
     changed_at: datetime
 

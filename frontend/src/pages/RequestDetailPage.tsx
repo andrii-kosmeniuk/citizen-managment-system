@@ -107,7 +107,10 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
         <strong>Priority:</strong> {detail.request.priority}
       </p>
       <p>
-        <strong>Assigned To:</strong> {detail.request.assigned_to_user_id ?? "Unassigned"}
+        <strong>Assigned To:</strong>{" "}
+        {detail.request.assigned_to_user_id
+          ? `${detail.request.assigned_to_user_id}(${detail.request.assigned_to_display_name ?? "Unknown Worker"})`
+          : "Unassigned"}
       </p>
 
       {isWorker && (
@@ -151,7 +154,8 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
         <ul>
           {detail.status_history.map((history) => (
             <li key={history.id}>
-              [{new Date(history.changed_at).toLocaleString()}] {history.from_status ?? "NONE"} -&gt; {history.to_status} (User {history.changed_by_user_id})
+              [{new Date(history.changed_at).toLocaleString()}] {history.from_status ?? "NONE"} -&gt; {history.to_status} (
+              {history.changed_by_user_id}, {history.changed_by_display_name ?? "Unknown Worker"})
               {history.change_note ? `: ${history.change_note}` : ""}
             </li>
           ))}
