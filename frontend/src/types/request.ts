@@ -6,6 +6,7 @@ export type RequestStatus =
   | "CLOSED";
 
 export type RequestPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type ActorRole = "citizen" | "worker";
 
 export interface CitizenRequest {
   id: number;

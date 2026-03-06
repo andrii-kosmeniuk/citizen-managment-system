@@ -60,10 +60,12 @@ vi.mock("../../api/client", () => {
     })),
     createRequest: vi.fn().mockResolvedValue({ id: 1 }),
     claimRequest: vi.fn().mockResolvedValue({}),
-    updateRequestStatus: vi.fn().mockImplementation(async (_id: number, _actor: number, to: string) => {
+    updateRequestStatus: vi.fn().mockImplementation(
+      async (_role: string, _id: number, _actor: number, to: string) => {
       currentStatus = to;
       return {};
-    }),
+      },
+    ),
     addRequestComment: vi.fn().mockImplementation(async () => {
       if (currentStatus === "CLOSED") {
         throw new Error("Closed request cannot be modified");
@@ -79,7 +81,12 @@ vi.mock("../../api/client", () => {
         },
       ];
     }),
+    createCategory: vi.fn().mockResolvedValue({ id: 5, name: "Other", is_active: true }),
   };
+});
+
+beforeEach(() => {
+  localStorage.clear();
 });
 
 test("basic dashboard user flow works", async () => {
@@ -94,6 +101,8 @@ test("basic dashboard user flow works", async () => {
   fireEvent.change(screen.getByTestId("create-citizen-last-name"), { target: { value: "Muster" } });
   fireEvent.click(screen.getByTestId("create-submit"));
 
+  fireEvent.change(screen.getByTestId("role-select"), { target: { value: "worker" } });
+  await waitFor(() => expect(screen.getByTestId("claim-submit")).toBeInTheDocument());
   fireEvent.click(screen.getByTestId("claim-submit"));
 
   fireEvent.change(screen.getByTestId("status-next"), { target: { value: "IN_PROGRESS" } });
@@ -110,4 +119,15 @@ test("basic dashboard user flow works", async () => {
   expect(screen.getByTestId("claim-submit")).toBeDisabled();
   expect(screen.getByTestId("status-submit")).toBeDisabled();
   expect(screen.getByTestId("comment-submit")).toBeDisabled();
+});
+
+test("citizen role hides worker-only controls", async () => {
+  render(<RequestsPage />);
+
+  await waitFor(() => expect(screen.getByTestId("request-row-1")).toBeInTheDocument());
+  expect(screen.getByTestId("role-select")).toHaveValue("citizen");
+  expect(screen.queryByTestId("worker-category-form")).not.toBeInTheDocument();
+  expect(screen.queryByTestId("claim-submit")).not.toBeInTheDocument();
+  expect(screen.queryByTestId("status-submit")).not.toBeInTheDocument();
+  expect(screen.getByTestId("comment-submit")).toBeInTheDocument();
 });

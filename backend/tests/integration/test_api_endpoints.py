@@ -2,6 +2,9 @@ from sqlalchemy import text
 
 from app.db.models.user import StaffUser
 
+WORKER_HEADERS = {"X-Actor-Role": "worker"}
+CITIZEN_HEADERS = {"X-Actor-Role": "citizen"}
+
 
 def _create_staff(db_session, email: str, first_name: str = "John", last_name: str = "Doe") -> StaffUser:
     user = StaffUser(first_name=first_name, last_name=last_name, email=email)
@@ -23,15 +26,27 @@ def test_categories_crud_and_active_filter(client):
     initial_names = {item["name"] for item in list_initial.json()}
     assert initial_names == {"Infrastructure", "Environment", "Traffic", "Other"}
 
-    invalid = client.post("/categories", json={"name": "Noise", "description": "Should fail"})
-    assert invalid.status_code == 422
+    created = client.post(
+        "/categories",
+        json={"name": "  Noise  ", "description": "Should pass"},
+        headers=WORKER_HEADERS,
+    )
+    assert created.status_code == 201
+    assert created.json()["name"] == "Noise"
+
+    duplicate = client.post("/categories", json={"name": "Noise   "}, headers=WORKER_HEADERS)
+    assert duplicate.status_code == 409
 
     category_id = next(item["id"] for item in list_initial.json() if item["name"] == "Infrastructure")
-    updated = client.patch(f"/categories/{category_id}", json={"description": "Roads and lighting"})
+    updated = client.patch(
+        f"/categories/{category_id}",
+        json={"description": "Roads and lighting"},
+        headers=WORKER_HEADERS,
+    )
     assert updated.status_code == 200
     assert updated.json()["description"] == "Roads and lighting"
 
-    deleted = client.delete(f"/categories/{category_id}")
+    deleted = client.delete(f"/categories/{category_id}", headers=WORKER_HEADERS)
     assert deleted.status_code == 204
 
     active_only = client.get("/categories", params={"active_only": True})
@@ -77,13 +92,14 @@ def test_requests_end_to_end_all_actions(client, db_session):
     assert detail.json()["request"]["id"] == request_id
     assert len(detail.json()["status_history"]) == 1
 
-    claimed = client.post(f"/requests/{request_id}/claim", json={"actor_user_id": actor.id})
+    claimed = client.post(f"/requests/{request_id}/claim", json={"actor_user_id": actor.id}, headers=WORKER_HEADERS)
     assert claimed.status_code == 200
     assert claimed.json()["assigned_to_user_id"] == actor.id
 
     in_progress = client.patch(
         f"/requests/{request_id}/status",
         json={"actor_user_id": actor.id, "to_status": "IN_PROGRESS", "change_note": "Start processing"},
+        headers=WORKER_HEADERS,
     )
     assert in_progress.status_code == 200
     assert in_progress.json()["status"] == "IN_PROGRESS"
@@ -97,6 +113,7 @@ def test_requests_end_to_end_all_actions(client, db_session):
     resolved = client.patch(
         f"/requests/{request_id}/status",
         json={"actor_user_id": actor.id, "to_status": "RESOLVED", "change_note": "Fixed"},
+        headers=WORKER_HEADERS,
     )
     assert resolved.status_code == 200
     assert resolved.json()["status"] == "RESOLVED"
@@ -104,6 +121,7 @@ def test_requests_end_to_end_all_actions(client, db_session):
     closed = client.patch(
         f"/requests/{request_id}/status",
         json={"actor_user_id": creator.id, "to_status": "CLOSED", "change_note": "Verified"},
+        headers=WORKER_HEADERS,
     )
     assert closed.status_code == 200
     assert closed.json()["status"] == "CLOSED"
@@ -117,6 +135,7 @@ def test_requests_end_to_end_all_actions(client, db_session):
     status_on_closed = client.patch(
         f"/requests/{request_id}/status",
         json={"actor_user_id": actor.id, "to_status": "IN_PROGRESS", "change_note": "Should fail"},
+        headers=WORKER_HEADERS,
     )
     assert status_on_closed.status_code == 409
 
@@ -149,6 +168,7 @@ def test_requests_invalid_transition_returns_409(client, db_session):
     invalid = client.patch(
         f"/requests/{created.json()['id']}/status",
         json={"actor_user_id": creator.id, "to_status": "CLOSED", "change_note": "Invalid"},
+        headers=WORKER_HEADERS,
     )
     assert invalid.status_code == 409
 
@@ -156,10 +176,10 @@ def test_requests_invalid_transition_returns_409(client, db_session):
 def test_validation_and_not_found_errors(client, db_session):
     creator = _create_staff(db_session, "creator3@example.com", "Create", "Three")
 
-    bad_category = client.post("/categories", json={"name": "   "})
+    bad_category = client.post("/categories", json={"name": "   "}, headers=WORKER_HEADERS)
     assert bad_category.status_code == 422
-    unsupported_category = client.post("/categories", json={"name": "Random"})
-    assert unsupported_category.status_code == 422
+    custom_category = client.post("/categories", json={"name": "Food"}, headers=WORKER_HEADERS)
+    assert custom_category.status_code == 201
 
     missing_user = client.post(
         "/requests",
@@ -221,3 +241,46 @@ def test_status_history_written_for_each_change(db_session):
     result = db_session.execute(text("SELECT COUNT(*) FROM request_status_history"))
     count = result.scalar_one()
     assert count >= 1
+
+
+def test_citizen_cannot_access_worker_actions(client, db_session):
+    creator = _create_staff(db_session, "creator4@example.com", "Create", "Four")
+    actor = _create_staff(db_session, "actor4@example.com", "Actor", "Four")
+    category_id = next(item["id"] for item in client.get("/categories").json() if item["name"] == "Traffic")
+
+    created = client.post(
+        "/requests",
+        json={
+            "creator_user_id": creator.id,
+            "title": "Blocked lane",
+            "description": "Construction blocks one lane",
+            "category_id": category_id,
+            "priority": "MEDIUM",
+            "citizen_first_name": "Tim",
+            "citizen_last_name": "Tester",
+        },
+        headers=CITIZEN_HEADERS,
+    )
+    assert created.status_code == 201
+    request_id = created.json()["id"]
+
+    claim_forbidden = client.post(
+        f"/requests/{request_id}/claim",
+        json={"actor_user_id": actor.id},
+        headers=CITIZEN_HEADERS,
+    )
+    assert claim_forbidden.status_code == 403
+
+    status_forbidden = client.patch(
+        f"/requests/{request_id}/status",
+        json={"actor_user_id": actor.id, "to_status": "IN_PROGRESS"},
+        headers=CITIZEN_HEADERS,
+    )
+    assert status_forbidden.status_code == 403
+
+    category_forbidden = client.post(
+        "/categories",
+        json={"name": "Traffic", "description": "Will be rejected because role"},
+        headers=CITIZEN_HEADERS,
+    )
+    assert category_forbidden.status_code == 403

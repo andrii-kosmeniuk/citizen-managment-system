@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.api.dependencies.auth import require_worker
 from app.core.logging import get_logger
 from app.db.models.category import Category
 from app.db.session import get_db
@@ -10,7 +11,6 @@ from app.schemas.category import CategoryCreate, CategoryRead, CategoryUpdate
 
 router = APIRouter(prefix="/categories", tags=["categories"])
 logger = get_logger(__name__)
-ALLOWED_CATEGORY_NAMES = {"Infrastructure", "Environment", "Traffic", "Other"}
 
 
 @router.get("", response_model=list[CategoryRead])
@@ -22,15 +22,14 @@ def list_categories(active_only: bool = Query(default=False), db: Session = Depe
 
 
 @router.post("", response_model=CategoryRead, status_code=status.HTTP_201_CREATED)
-def create_category(payload: CategoryCreate, db: Session = Depends(get_db)) -> Category:
+def create_category(
+    payload: CategoryCreate,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_worker),
+) -> Category:
     name = payload.name.strip()
     if not name:
         raise HTTPException(status_code=422, detail="name must not be blank")
-    if name not in ALLOWED_CATEGORY_NAMES:
-        raise HTTPException(
-            status_code=422,
-            detail="name must be one of: Infrastructure, Environment, Traffic, Other",
-        )
     category = Category(name=name, description=payload.description)
     db.add(category)
     try:
@@ -44,7 +43,9 @@ def create_category(payload: CategoryCreate, db: Session = Depends(get_db)) -> C
 
 
 @router.patch("/{category_id}", response_model=CategoryRead)
-def update_category(category_id: int, payload: CategoryUpdate, db: Session = Depends(get_db)) -> Category:
+def update_category(
+    category_id: int, payload: CategoryUpdate, db: Session = Depends(get_db), _: None = Depends(require_worker)
+) -> Category:
     category = db.get(Category, category_id)
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -53,11 +54,6 @@ def update_category(category_id: int, payload: CategoryUpdate, db: Session = Dep
         name = payload.name.strip()
         if not name:
             raise HTTPException(status_code=422, detail="name must not be blank")
-        if name not in ALLOWED_CATEGORY_NAMES:
-            raise HTTPException(
-                status_code=422,
-                detail="name must be one of: Infrastructure, Environment, Traffic, Other",
-            )
         category.name = name
     if payload.description is not None:
         category.description = payload.description
@@ -75,7 +71,7 @@ def update_category(category_id: int, payload: CategoryUpdate, db: Session = Dep
 
 
 @router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
-def deactivate_category(category_id: int, db: Session = Depends(get_db)) -> None:
+def deactivate_category(category_id: int, db: Session = Depends(get_db), _: None = Depends(require_worker)) -> None:
     category = db.get(Category, category_id)
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")

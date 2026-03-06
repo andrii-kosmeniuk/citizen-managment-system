@@ -3,14 +3,15 @@ import { useEffect, useState } from "react";
 import { addRequestComment, claimRequest, fetchRequestDetail, updateRequestStatus } from "../api/client";
 import { CommentBox } from "../components/CommentBox";
 import { StatusChanger } from "../components/StatusChanger";
-import type { RequestDetailResponse, RequestStatus } from "../types/request";
+import type { ActorRole, RequestDetailResponse, RequestStatus } from "../types/request";
 
 interface Props {
+  actorRole: ActorRole;
   requestId: number | null;
   onDataChanged: () => Promise<void>;
 }
 
-export function RequestDetailPage({ requestId, onDataChanged }: Props) {
+export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props) {
   const [detail, setDetail] = useState<RequestDetailResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +25,7 @@ export function RequestDetailPage({ requestId, onDataChanged }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchRequestDetail(requestId);
+      const data = await fetchRequestDetail(actorRole, requestId);
       setDetail(data);
     } catch (err) {
       setError((err as Error).message);
@@ -35,7 +36,7 @@ export function RequestDetailPage({ requestId, onDataChanged }: Props) {
 
   useEffect(() => {
     void loadDetail();
-  }, [requestId]);
+  }, [requestId, actorRole]);
 
   if (!requestId) {
     return <p>Select a request to view details.</p>;
@@ -54,11 +55,12 @@ export function RequestDetailPage({ requestId, onDataChanged }: Props) {
   }
 
   const isClosed = detail.request.status === "CLOSED";
+  const isWorker = actorRole === "worker";
 
   const handleClaim = async () => {
     setError(null);
     try {
-      await claimRequest(requestId, claimActorUserId);
+      await claimRequest(actorRole, requestId, claimActorUserId);
       await loadDetail();
       await onDataChanged();
     } catch (err) {
@@ -69,7 +71,7 @@ export function RequestDetailPage({ requestId, onDataChanged }: Props) {
   const handleStatusSubmit = async (nextStatus: RequestStatus, actorUserId: number, changeNote?: string) => {
     setError(null);
     try {
-      await updateRequestStatus(requestId, actorUserId, nextStatus, changeNote);
+      await updateRequestStatus(actorRole, requestId, actorUserId, nextStatus, changeNote);
       await loadDetail();
       await onDataChanged();
     } catch (err) {
@@ -81,7 +83,7 @@ export function RequestDetailPage({ requestId, onDataChanged }: Props) {
   const handleCommentSubmit = async (authorUserId: number, commentText: string) => {
     setError(null);
     try {
-      await addRequestComment(requestId, authorUserId, commentText);
+      await addRequestComment(actorRole, requestId, authorUserId, commentText);
       await loadDetail();
     } catch (err) {
       setError((err as Error).message);
@@ -108,20 +110,24 @@ export function RequestDetailPage({ requestId, onDataChanged }: Props) {
         <strong>Assigned To:</strong> {detail.request.assigned_to_user_id ?? "Unassigned"}
       </p>
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <input
-          data-testid="claim-actor-id"
-          type="number"
-          min={1}
-          value={claimActorUserId}
-          onChange={(e) => setClaimActorUserId(Number(e.target.value))}
-        />
-        <button data-testid="claim-submit" onClick={handleClaim} disabled={isClosed}>
-          Claim Request
-        </button>
-      </div>
+      {isWorker && (
+        <>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              data-testid="claim-actor-id"
+              type="number"
+              min={1}
+              value={claimActorUserId}
+              onChange={(e) => setClaimActorUserId(Number(e.target.value))}
+            />
+            <button data-testid="claim-submit" onClick={handleClaim} disabled={isClosed}>
+              Claim Request
+            </button>
+          </div>
 
-      <StatusChanger onSubmit={handleStatusSubmit} disabled={isClosed} />
+          <StatusChanger onSubmit={handleStatusSubmit} disabled={isClosed} />
+        </>
+      )}
       <CommentBox onSubmit={handleCommentSubmit} disabled={isClosed} />
 
       <h3>Comments</h3>

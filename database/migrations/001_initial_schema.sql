@@ -40,8 +40,7 @@ CREATE TABLE category (
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  CONSTRAINT chk_category_name_not_blank CHECK (LENGTH(BTRIM(name)) > 0),
-  CONSTRAINT chk_category_name_allowed CHECK (name IN ('Infrastructure', 'Environment', 'Traffic', 'Other'))
+  CONSTRAINT chk_category_name_not_blank CHECK (LENGTH(BTRIM(name)) > 0)
 );
 
 INSERT INTO category (name, description, is_active)
@@ -107,6 +106,7 @@ CREATE TABLE request_status_history (
 );
 
 CREATE INDEX idx_requests_status ON citizen_request(status);
+CREATE UNIQUE INDEX uq_category_name_normalized ON category ((LOWER(BTRIM(name))));
 CREATE INDEX idx_requests_category ON citizen_request(category_id);
 CREATE INDEX idx_requests_priority ON citizen_request(priority);
 CREATE INDEX idx_requests_assigned_to ON citizen_request(assigned_to_user_id);

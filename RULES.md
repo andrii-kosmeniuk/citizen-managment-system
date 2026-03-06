@@ -194,14 +194,37 @@ Must include:
 - [x] Security/static scans run (if enabled) without critical findings.
 - [x] Startup/run/test commands are reproducible on a fresh environment.
 
-### Phase 5: Documentation & Submission Packaging
+### Phase 5: Role Selection & Permission Scope (Citizen vs Worker)
+- [x] Add entry screen or toggle to choose role: `Citizen` or `Worker`.
+- [x] Persist selected role in frontend state (and optionally local storage for session continuity).
+- [x] Define permission matrix and enforce in UI:
+  - [x] `Citizen`: create request, list/filter requests, view request details, add comments.
+  - [x] `Worker`: all citizen permissions plus create category, claim/assign request by worker ID, update request status.
+- [x] Add backend role-aware authorization model for protected actions:
+  - [x] Restrict category create/update/deactivate to `Worker`.
+  - [x] Restrict claim and status update endpoints to `Worker`.
+  - [x] Keep comment creation available for both roles.
+- [x] Extend API contracts/schemas to carry actor role or actor type where needed.
+- [x] Add clear frontend UX behavior for unauthorized actions (hidden/disabled controls and readable error messages).
+- [x] Ensure auditability remains intact when `Worker` actions are performed (status history and actor IDs still recorded).
+
+#### Test checkpoint after Phase 5 (Role-Based Access)
+- [x] UI test: role selector appears first and role choice updates available actions.
+- [x] Citizen test: can create/list/filter/view/comment; cannot see or execute category management.
+- [x] Citizen test: cannot claim request or update status (UI blocked + API returns forbidden).
+- [x] Worker test: can perform all citizen actions plus category management.
+- [x] Worker test: can claim request by worker ID and update status through valid workflow.
+- [x] API authorization test: protected endpoints reject citizen role and allow worker role.
+- [x] Regression test: closed-request immutability still enforced for both roles.
+
+### Phase 6: Documentation & Submission Packaging
 - [ ] Complete `docs/specification.md` with SDD artifacts and assumptions.
 - [ ] Complete `docs/architecture.md` with decisions and alternatives.
 - [ ] Complete `docs/ai-usage.md` with prompt/workflow reflection.
 - [ ] Ensure README contains exact setup, run, reset, and test instructions.
 - [ ] Prepare final ZIP with code + docs + test assets.
 
-#### Test checkpoint after Phase 5 (Final Verification)
+#### Test checkpoint after Phase 6 (Final Verification)
 - [ ] Validate submission contents against required deliverables checklist.
 - [ ] Re-run full test suite before packaging.
 - [ ] Confirm all acceptance criteria are demonstrably met.
@@ -213,4 +236,5 @@ Must include:
 - [ ] Closed requests cannot be modified.
 - [ ] Status history is recorded and queryable.
 - [ ] Dashboard supports list/filter/detail/status/comment operations.
+- [ ] Role selection enforces `Citizen` vs `Worker` permissions correctly.
 - [ ] Project runs reproducibly and tests are executable.

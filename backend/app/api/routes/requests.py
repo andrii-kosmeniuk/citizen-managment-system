@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.api.dependencies.auth import require_worker
 from app.core.logging import get_logger
 from app.db.models.category import Category
 from app.db.models.comment import RequestComment
@@ -142,7 +143,9 @@ def get_request_detail(request_id: int, db: Session = Depends(get_db)) -> Reques
 
 
 @router.post("/{request_id}/claim", response_model=RequestRead)
-def claim_request(request_id: int, payload: RequestClaim, db: Session = Depends(get_db)) -> CitizenRequest:
+def claim_request(
+    request_id: int, payload: RequestClaim, db: Session = Depends(get_db), _: None = Depends(require_worker)
+) -> CitizenRequest:
     req = _require_request(db, request_id)
     _require_user(db, payload.actor_user_id)
 
@@ -161,7 +164,9 @@ def claim_request(request_id: int, payload: RequestClaim, db: Session = Depends(
 
 
 @router.patch("/{request_id}/status", response_model=RequestRead)
-def update_status(request_id: int, payload: RequestStatusUpdate, db: Session = Depends(get_db)) -> CitizenRequest:
+def update_status(
+    request_id: int, payload: RequestStatusUpdate, db: Session = Depends(get_db), _: None = Depends(require_worker)
+) -> CitizenRequest:
     req = _require_request(db, request_id)
     _require_user(db, payload.actor_user_id)
 

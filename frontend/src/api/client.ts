@@ -1,5 +1,6 @@
 import type { Category } from "../types/category";
 import type {
+  ActorRole,
   CitizenRequest,
   CreateRequestPayload,
   RequestDetailResponse,
@@ -15,11 +16,16 @@ interface RequestFilterParams {
   priority?: RequestPriority;
 }
 
-async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
+function headersFor(role: ActorRole): HeadersInit {
+  return {
+    "Content-Type": "application/json",
+    "X-Actor-Role": role,
+  };
+}
+
+async function fetchJson<T>(url: string, role: ActorRole, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: headersFor(role),
     ...options,
   });
 
@@ -45,57 +51,66 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function fetchRequests(filters?: RequestFilterParams): Promise<CitizenRequest[]> {
+export async function fetchRequests(role: ActorRole, filters?: RequestFilterParams): Promise<CitizenRequest[]> {
   const query = new URLSearchParams();
   if (filters?.status) query.set("status", filters.status);
   if (filters?.category_id) query.set("category_id", String(filters.category_id));
   if (filters?.priority) query.set("priority", filters.priority);
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  return fetchJson<CitizenRequest[]>(`${API_BASE}/requests${suffix}`);
+  return fetchJson<CitizenRequest[]>(`${API_BASE}/requests${suffix}`, role);
 }
 
-export async function fetchRequestDetail(requestId: number): Promise<RequestDetailResponse> {
-  return fetchJson<RequestDetailResponse>(`${API_BASE}/requests/${requestId}`);
+export async function fetchRequestDetail(role: ActorRole, requestId: number): Promise<RequestDetailResponse> {
+  return fetchJson<RequestDetailResponse>(`${API_BASE}/requests/${requestId}`, role);
 }
 
-export async function fetchCategories(activeOnly = true): Promise<Category[]> {
-  return fetchJson<Category[]>(`${API_BASE}/categories?active_only=${activeOnly}`);
+export async function fetchCategories(role: ActorRole, activeOnly = true): Promise<Category[]> {
+  return fetchJson<Category[]>(`${API_BASE}/categories?active_only=${activeOnly}`, role);
 }
 
-export async function createRequest(payload: CreateRequestPayload): Promise<CitizenRequest> {
-  return fetchJson<CitizenRequest>(`${API_BASE}/requests`, {
+export async function createRequest(role: ActorRole, payload: CreateRequestPayload): Promise<CitizenRequest> {
+  return fetchJson<CitizenRequest>(`${API_BASE}/requests`, role, {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
-export async function claimRequest(requestId: number, actorUserId: number): Promise<CitizenRequest> {
-  return fetchJson<CitizenRequest>(`${API_BASE}/requests/${requestId}/claim`, {
+export async function claimRequest(role: ActorRole, requestId: number, actorUserId: number): Promise<CitizenRequest> {
+  return fetchJson<CitizenRequest>(`${API_BASE}/requests/${requestId}/claim`, role, {
     method: "POST",
     body: JSON.stringify({ actor_user_id: actorUserId }),
   });
 }
 
 export async function updateRequestStatus(
+  role: ActorRole,
   requestId: number,
   actorUserId: number,
   toStatus: RequestStatus,
   changeNote?: string,
 ): Promise<CitizenRequest> {
-  return fetchJson<CitizenRequest>(`${API_BASE}/requests/${requestId}/status`, {
+  return fetchJson<CitizenRequest>(`${API_BASE}/requests/${requestId}/status`, role, {
     method: "PATCH",
     body: JSON.stringify({ actor_user_id: actorUserId, to_status: toStatus, change_note: changeNote || null }),
   });
 }
 
 export async function addRequestComment(
+  role: ActorRole,
   requestId: number,
   authorUserId: number,
   commentText: string,
 ): Promise<void> {
-  await fetchJson(`${API_BASE}/requests/${requestId}/comments`, {
+  await fetchJson(`${API_BASE}/requests/${requestId}/comments`, role, {
     method: "POST",
     body: JSON.stringify({ author_user_id: authorUserId, comment_text: commentText }),
+  });
+}
+
+export async function createCategory(role: ActorRole, name: string, description?: string): Promise<Category> {
+  return fetchJson<Category>(`${API_BASE}/categories`, role, {
+    method: "POST",
+    body: JSON.stringify({ name, description: description || null }),
   });
 }
