@@ -19,6 +19,16 @@ vi.mock("../../api/client", () => {
 
   return {
     fetchCategories: vi.fn().mockResolvedValue([{ id: 1, name: "Infrastructure", is_active: true }]),
+    fetchStaffUsers: vi.fn().mockResolvedValue([
+      {
+        id: 1,
+        first_name: "Alex",
+        last_name: "Don",
+        is_active: true,
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:00:00Z",
+      },
+    ]),
     fetchRequests: vi.fn().mockImplementation(async () => [
       {
         id: 1,
@@ -108,6 +118,7 @@ test("basic dashboard user flow works", async () => {
 
   fireEvent.change(screen.getByTestId("role-select"), { target: { value: "worker" } });
   await waitFor(() => expect(screen.getByTestId("claim-submit")).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByTestId("staff-list-table")).toBeInTheDocument());
   fireEvent.click(screen.getByTestId("claim-submit"));
 
   fireEvent.change(screen.getByTestId("status-next"), { target: { value: "IN_PROGRESS" } });
@@ -132,6 +143,7 @@ test("citizen role hides worker-only controls", async () => {
   await waitFor(() => expect(screen.getByTestId("request-row-1")).toBeInTheDocument());
   expect(screen.getByTestId("role-select")).toHaveValue("citizen");
   expect(screen.queryByTestId("worker-category-form")).not.toBeInTheDocument();
+  expect(screen.queryByTestId("staff-list-table")).not.toBeInTheDocument();
   expect(screen.queryByTestId("claim-submit")).not.toBeInTheDocument();
   expect(screen.queryByTestId("status-submit")).not.toBeInTheDocument();
   expect(screen.getByTestId("comment-submit")).toBeInTheDocument();

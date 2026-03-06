@@ -20,6 +20,21 @@ def test_health(client):
     assert response.json() == {"status": "ok"}
 
 
+def test_staff_users_list_requires_worker(client, db_session):
+    user = _create_staff(db_session, "worker.list@example.com", "Worker", "Listed")
+
+    forbidden = client.get("/staff-users", headers=CITIZEN_HEADERS)
+    assert forbidden.status_code == 403
+
+    allowed = client.get("/staff-users", headers=WORKER_HEADERS)
+    assert allowed.status_code == 200
+    payload = allowed.json()
+    assert any(
+        item["id"] == user.id and item["first_name"] == "Worker" and item["last_name"] == "Listed"
+        for item in payload
+    )
+
+
 def test_categories_crud_and_active_filter(client):
     list_initial = client.get("/categories")
     assert list_initial.status_code == 200

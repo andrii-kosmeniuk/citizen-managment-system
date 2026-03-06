@@ -1,4 +1,5 @@
 import type { Category } from "../types/category";
+import type { StaffUser } from "../types/staff_user";
 import type {
   ActorRole,
   CitizenRequest,
@@ -117,4 +118,8 @@ export async function createCategory(role: ActorRole, name: string, description?
     method: "POST",
     body: JSON.stringify({ name, description: description || null }),
   });
+}
+
+export async function fetchStaffUsers(role: ActorRole): Promise<StaffUser[]> {
+  return fetchJson<StaffUser[]>(`${API_BASE}/staff-users`, role);
 }
