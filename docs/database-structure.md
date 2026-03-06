@@ -23,6 +23,11 @@ This schema supports the Citizen Request Management System requirements.
   - `description`
   - `is_active`
   - `created_at`, `updated_at`
+- Allowed `name` values:
+  - `Infrastructure`
+  - `Environment`
+  - `Traffic`
+  - `Other`
 
 ### `citizen_request`
 - Purpose: Main citizen request entity.

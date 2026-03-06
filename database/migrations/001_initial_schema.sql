@@ -40,8 +40,16 @@ CREATE TABLE category (
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  CONSTRAINT chk_category_name_not_blank CHECK (LENGTH(BTRIM(name)) > 0)
+  CONSTRAINT chk_category_name_not_blank CHECK (LENGTH(BTRIM(name)) > 0),
+  CONSTRAINT chk_category_name_allowed CHECK (name IN ('Infrastructure', 'Environment', 'Traffic', 'Other'))
 );
+
+INSERT INTO category (name, description, is_active)
+VALUES
+  ('Infrastructure', 'Roads, lights, public facilities maintenance issues.', TRUE),
+  ('Environment', 'Waste, pollution, parks, and environmental concerns.', TRUE),
+  ('Traffic', 'Road signs, traffic lights, parking, and traffic flow issues.', TRUE),
+  ('Other', 'General requests that do not match predefined categories.', TRUE);
 
 CREATE TABLE citizen_request (
   id                   BIGSERIAL PRIMARY KEY,

@@ -10,6 +10,7 @@ from app.schemas.category import CategoryCreate, CategoryRead, CategoryUpdate
 
 router = APIRouter(prefix="/categories", tags=["categories"])
 logger = get_logger(__name__)
+ALLOWED_CATEGORY_NAMES = {"Infrastructure", "Environment", "Traffic", "Other"}
 
 
 @router.get("", response_model=list[CategoryRead])
@@ -25,6 +26,11 @@ def create_category(payload: CategoryCreate, db: Session = Depends(get_db)) -> C
     name = payload.name.strip()
     if not name:
         raise HTTPException(status_code=422, detail="name must not be blank")
+    if name not in ALLOWED_CATEGORY_NAMES:
+        raise HTTPException(
+            status_code=422,
+            detail="name must be one of: Infrastructure, Environment, Traffic, Other",
+        )
     category = Category(name=name, description=payload.description)
     db.add(category)
     try:
@@ -47,6 +53,11 @@ def update_category(category_id: int, payload: CategoryUpdate, db: Session = Dep
         name = payload.name.strip()
         if not name:
             raise HTTPException(status_code=422, detail="name must not be blank")
+        if name not in ALLOWED_CATEGORY_NAMES:
+            raise HTTPException(
+                status_code=422,
+                detail="name must be one of: Infrastructure, Environment, Traffic, Other",
+            )
         category.name = name
     if payload.description is not None:
         category.description = payload.description

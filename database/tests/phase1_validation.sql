@@ -9,10 +9,6 @@ VALUES
   ('Alice', 'Admin', 'alice.admin@example.com'),
   ('Bob', 'Worker', 'bob.worker@example.com');
 
-INSERT INTO category (name, description)
-VALUES
-  ('Infrastructure', 'Roads and lights');
-
 -- Happy path request insert
 INSERT INTO citizen_request (
   title,
@@ -23,7 +19,15 @@ INSERT INTO citizen_request (
   citizen_first_name,
   citizen_last_name
 )
-VALUES ('Broken street light', 'Lamp not working on Main St.', 1, 'MEDIUM', 'NEW', 'Max', 'Mustermann');
+VALUES (
+  'Broken street light',
+  'Lamp not working on Main St.',
+  (SELECT id FROM category WHERE name = 'Infrastructure'),
+  'MEDIUM',
+  'NEW',
+  'Max',
+  'Mustermann'
+);
 
 -- Initial status history
 INSERT INTO request_status_history (request_id, from_status, to_status, changed_by_user_id, change_note)
@@ -47,7 +51,7 @@ $$;
 DO $$
 BEGIN
   BEGIN
-    EXECUTE 'INSERT INTO citizen_request (title, description, category_id, priority, status, citizen_first_name, citizen_last_name) VALUES (''Invalid enum'', ''Should fail'', 1, ''INVALID_PRIORITY'', ''NEW'', ''Max'', ''Mustermann'')';
+    EXECUTE 'INSERT INTO citizen_request (title, description, category_id, priority, status, citizen_first_name, citizen_last_name) VALUES (''Invalid enum'', ''Should fail'', (SELECT id FROM category WHERE name = ''Infrastructure''), ''INVALID_PRIORITY'', ''NEW'', ''Max'', ''Mustermann'')';
     RAISE EXCEPTION 'Expected enum validation failure for priority';
   EXCEPTION
     WHEN invalid_text_representation THEN

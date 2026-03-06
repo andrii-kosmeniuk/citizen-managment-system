@@ -20,15 +20,13 @@ def test_health(client):
 def test_categories_crud_and_active_filter(client):
     list_initial = client.get("/categories")
     assert list_initial.status_code == 200
+    initial_names = {item["name"] for item in list_initial.json()}
+    assert initial_names == {"Infrastructure", "Environment", "Traffic", "Other"}
 
-    created = client.post("/categories", json={"name": "Infrastructure", "description": "Roads"})
-    assert created.status_code == 201
-    category_id = created.json()["id"]
+    invalid = client.post("/categories", json={"name": "Noise", "description": "Should fail"})
+    assert invalid.status_code == 422
 
-    listed = client.get("/categories")
-    assert listed.status_code == 200
-    assert any(item["id"] == category_id for item in listed.json())
-
+    category_id = next(item["id"] for item in list_initial.json() if item["name"] == "Infrastructure")
     updated = client.patch(f"/categories/{category_id}", json={"description": "Roads and lighting"})
     assert updated.status_code == 200
     assert updated.json()["description"] == "Roads and lighting"
@@ -46,9 +44,9 @@ def test_requests_end_to_end_all_actions(client, db_session):
     creator = _create_staff(db_session, "creator@example.com", "Create", "User")
     actor = _create_staff(db_session, "actor@example.com", "Actor", "User")
 
-    category = client.post("/categories", json={"name": "Traffic", "description": "Signals"})
-    assert category.status_code == 201
-    category_id = category.json()["id"]
+    categories = client.get("/categories")
+    assert categories.status_code == 200
+    category_id = next(item["id"] for item in categories.json() if item["name"] == "Traffic")
 
     created = client.post(
         "/requests",
@@ -130,8 +128,9 @@ def test_requests_end_to_end_all_actions(client, db_session):
 
 def test_requests_invalid_transition_returns_409(client, db_session):
     creator = _create_staff(db_session, "creator2@example.com", "Create", "Two")
-    category = client.post("/categories", json={"name": "Environment", "description": "Waste"})
-    assert category.status_code == 201
+    categories = client.get("/categories")
+    assert categories.status_code == 200
+    category_id = next(item["id"] for item in categories.json() if item["name"] == "Environment")
 
     created = client.post(
         "/requests",
@@ -139,7 +138,7 @@ def test_requests_invalid_transition_returns_409(client, db_session):
             "creator_user_id": creator.id,
             "title": "Garbage dump",
             "description": "Illegal garbage in park",
-            "category_id": category.json()["id"],
+            "category_id": category_id,
             "priority": "MEDIUM",
             "citizen_first_name": "Gary",
             "citizen_last_name": "Citizen",
@@ -159,6 +158,8 @@ def test_validation_and_not_found_errors(client, db_session):
 
     bad_category = client.post("/categories", json={"name": "   "})
     assert bad_category.status_code == 422
+    unsupported_category = client.post("/categories", json={"name": "Random"})
+    assert unsupported_category.status_code == 422
 
     missing_user = client.post(
         "/requests",
@@ -174,8 +175,9 @@ def test_validation_and_not_found_errors(client, db_session):
     )
     assert missing_user.status_code == 404
 
-    category = client.post("/categories", json={"name": "Other", "description": "General"})
-    assert category.status_code == 201
+    categories = client.get("/categories")
+    assert categories.status_code == 200
+    category_id = next(item["id"] for item in categories.json() if item["name"] == "Other")
 
     bad_request = client.post(
         "/requests",
@@ -183,7 +185,7 @@ def test_validation_and_not_found_errors(client, db_session):
             "creator_user_id": creator.id,
             "title": "   ",
             "description": "desc",
-            "category_id": category.json()["id"],
+            "category_id": category_id,
             "priority": "LOW",
             "citizen_first_name": "Blank",
             "citizen_last_name": "Title",
@@ -200,7 +202,7 @@ def test_validation_and_not_found_errors(client, db_session):
             "creator_user_id": creator.id,
             "title": "Open request",
             "description": "Open for validation",
-            "category_id": category.json()["id"],
+            "category_id": category_id,
             "priority": "LOW",
             "citizen_first_name": "Open",
             "citizen_last_name": "Citizen",

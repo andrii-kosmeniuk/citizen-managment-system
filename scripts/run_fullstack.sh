@@ -4,6 +4,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_DIR="$ROOT_DIR/backend"
 FRONTEND_DIR="$ROOT_DIR/frontend"
+SEED_FILE="$ROOT_DIR/database/seed/001_test_values.sql"
+DB_SERVICE="${DB_SERVICE:-db}"
+DB_USER="${DB_USER:-postgres}"
+DB_NAME="${DB_NAME:-citizen_requests}"
 
 cleanup() {
   echo
@@ -28,7 +32,18 @@ fi
 
 # Start DB container for the backend.
 cd "$ROOT_DIR"
-docker compose up -d db >/dev/null
+docker compose up -d "$DB_SERVICE" >/dev/null
+
+echo "Resetting database and applying schema..."
+"$ROOT_DIR/scripts/reset_db.sh" >/dev/null
+
+if [[ ! -f "$SEED_FILE" ]]; then
+  echo "Seed file not found: $SEED_FILE" >&2
+  exit 1
+fi
+
+echo "Seeding database test values..."
+docker compose exec -T "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f /dev/stdin < "$SEED_FILE" >/dev/null
 
 # Backend setup.
 if [[ ! -d "$BACKEND_DIR/.venv" ]]; then
