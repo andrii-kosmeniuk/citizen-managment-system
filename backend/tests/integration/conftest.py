@@ -19,13 +19,13 @@ def _to_psycopg_dsn(sqlalchemy_url: str) -> str:
 
 def _reset_db_with_sqlalchemy_url(sqlalchemy_url: str) -> None:
     repo_root = Path(__file__).resolve().parents[3]
-    migration = repo_root / "database" / "migrations" / "001_initial_schema.sql"
-    sql = migration.read_text(encoding="utf-8")
+    migrations = sorted((repo_root / "database" / "migrations").glob("*.sql"))
     dsn = _to_psycopg_dsn(sqlalchemy_url)
     with psycopg.connect(dsn, autocommit=True) as conn:
         with conn.cursor() as cur:
             cur.execute("DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;")
-            cur.execute(sql)
+            for migration in migrations:
+                cur.execute(migration.read_text(encoding="utf-8"))
 
 
 @pytest.fixture(scope="session", autouse=True)

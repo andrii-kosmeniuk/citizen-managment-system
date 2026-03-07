@@ -1,0 +1,77 @@
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.db.models.citizen_profile import CitizenProfile
+from app.db.models.person import Person
+from app.db.models.person_role import PersonRole
+from app.db.models.role import Role
+from app.db.models.staff_profile import StaffProfile
+from app.db.models.user import StaffUser
+
+
+def _ensure_role(db: Session, code: str) -> Role:
+    role = db.scalar(select(Role).where(Role.code == code))
+    if role is None:
+        role = Role(code=code, description=f"Autocreated role {code}", is_active=True)
+        db.add(role)
+        db.flush()
+    return role
+
+
+def _ensure_person_role(db: Session, person_id: int, role_code: str) -> None:
+    role = _ensure_role(db, role_code)
+    existing = db.scalar(
+        select(PersonRole).where(PersonRole.person_id == person_id, PersonRole.role_id == role.id)
+    )
+    if existing is None:
+        db.add(PersonRole(person_id=person_id, role_id=role.id))
+
+
+def ensure_staff_person(db: Session, user: StaffUser) -> Person:
+    person: Person | None = None
+    if user.person_id is not None:
+        person = db.get(Person, user.person_id)
+    if person is None:
+        person = Person(
+            first_name=user.first_name.strip(),
+            last_name=user.last_name.strip(),
+            email=user.email.strip().lower(),
+            is_active=user.is_active,
+        )
+        db.add(person)
+        db.flush()
+        user.person_id = person.id
+
+    staff_profile = db.scalar(select(StaffProfile).where(StaffProfile.person_id == person.id))
+    if staff_profile is None:
+        db.add(
+            StaffProfile(
+                person_id=person.id,
+                employee_code=f"EMP-{user.id}",
+                is_available=user.is_active,
+                legacy_staff_user_id=user.id,
+            )
+        )
+
+    _ensure_person_role(db, person.id, "WORKER")
+    return person
+
+
+def ensure_citizen_person(db: Session, first_name: str, last_name: str) -> Person:
+    first = first_name.strip()
+    last = last_name.strip()
+
+    person = db.scalar(
+        select(Person)
+        .join(CitizenProfile, CitizenProfile.person_id == Person.id)
+        .where(Person.first_name == first, Person.last_name == last)
+        .order_by(Person.id.asc())
+    )
+    if person is None:
+        person = Person(first_name=first, last_name=last, email=None, is_active=True)
+        db.add(person)
+        db.flush()
+        db.add(CitizenProfile(person_id=person.id))
+
+    _ensure_person_role(db, person.id, "CITIZEN")
+    return person

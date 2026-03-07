@@ -8,6 +8,7 @@ SEED_FILE="$ROOT_DIR/database/seed/001_test_values.sql"
 DB_SERVICE="${DB_SERVICE:-db}"
 DB_USER="${DB_USER:-postgres}"
 DB_NAME="${DB_NAME:-citizen_requests}"
+FRESH_START=false
 
 cleanup() {
   echo
@@ -16,6 +17,10 @@ cleanup() {
   if [[ -n "${BACKEND_PID:-}" ]]; then kill "$BACKEND_PID" >/dev/null 2>&1 || true; fi
 }
 trap cleanup EXIT INT TERM
+
+if [[ "${1:-}" == "--fresh" ]]; then
+  FRESH_START=true
+fi
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "docker is required" >&2
@@ -34,8 +39,22 @@ fi
 cd "$ROOT_DIR"
 docker compose up -d "$DB_SERVICE" >/dev/null
 
-echo "Resetting database and applying schema..."
-"$ROOT_DIR/scripts/reset_db.sh" >/dev/null
+echo "Waiting for PostgreSQL to be ready..."
+until docker compose exec -T "$DB_SERVICE" pg_isready -U "$DB_USER" -d "$DB_NAME" >/dev/null 2>&1; do
+  sleep 1
+done
+
+if [[ "$FRESH_START" == "true" ]]; then
+  echo "Fresh mode: resetting database and applying all migrations..."
+  "$ROOT_DIR/scripts/reset_db.sh" >/dev/null
+else
+  echo "Skipping DB reset (default mode). Use --fresh to reset DB."
+  schema_ready="$(docker compose exec -T "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" -Atc "SELECT to_regclass('public.citizen_request') IS NOT NULL;")"
+  if [[ "$schema_ready" != "t" ]]; then
+    echo "Database schema not initialized. Run: ./scripts/run_fullstack.sh --fresh" >&2
+    exit 1
+  fi
+fi
 
 if [[ ! -f "$SEED_FILE" ]]; then
   echo "Seed file not found: $SEED_FILE" >&2

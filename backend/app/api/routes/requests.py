@@ -22,6 +22,7 @@ from app.schemas.request import (
     RequestRead,
     RequestStatusUpdate,
 )
+from app.services.identity import ensure_citizen_person, ensure_staff_person
 from app.services.request_service import apply_status_timestamps
 from app.services.workflow import is_valid_transition
 
@@ -33,6 +34,7 @@ def _require_user(db: Session, user_id: int) -> StaffUser:
     user = db.get(StaffUser, user_id)
     if not user:
         raise HTTPException(status_code=404, detail=f"Staff user {user_id} not found")
+    ensure_staff_person(db, user)
     return user
 
 
@@ -71,7 +73,7 @@ def list_requests(
 
 @router.post("", response_model=RequestRead, status_code=status.HTTP_201_CREATED)
 def create_request(payload: RequestCreate, db: Session = Depends(get_db)) -> CitizenRequest:
-    _require_user(db, payload.creator_user_id)
+    creator = _require_user(db, payload.creator_user_id)
     _require_category(db, payload.category_id)
 
     title = payload.title.strip()
@@ -87,6 +89,8 @@ def create_request(payload: RequestCreate, db: Session = Depends(get_db)) -> Cit
     if not citizen_last_name:
         raise HTTPException(status_code=422, detail="citizen_last_name must not be blank")
 
+    citizen_person = ensure_citizen_person(db, citizen_first_name, citizen_last_name)
+
     request = CitizenRequest(
         title=title,
         description=description,
@@ -94,6 +98,8 @@ def create_request(payload: RequestCreate, db: Session = Depends(get_db)) -> Cit
         priority=payload.priority,
         citizen_first_name=citizen_first_name,
         citizen_last_name=citizen_last_name,
+        citizen_person_id=citizen_person.id,
+        created_by_person_id=creator.person_id,
         status=RequestStatus.NEW,
     )
     db.add(request)
@@ -106,6 +112,7 @@ def create_request(payload: RequestCreate, db: Session = Depends(get_db)) -> Cit
             from_status=None,
             to_status=RequestStatus.NEW,
             changed_by_user_id=payload.creator_user_id,
+            changed_by_person_id=creator.person_id,
             change_note="Initial status",
         )
     )
@@ -147,12 +154,13 @@ def claim_request(
     request_id: int, payload: RequestClaim, db: Session = Depends(get_db), _: None = Depends(require_worker)
 ) -> CitizenRequest:
     req = _require_request(db, request_id)
-    _require_user(db, payload.actor_user_id)
+    actor = _require_user(db, payload.actor_user_id)
 
     if req.status == RequestStatus.CLOSED:
         raise HTTPException(status_code=409, detail="Closed request cannot be modified")
 
     req.assigned_to_user_id = payload.actor_user_id
+    req.assigned_to_person_id = actor.person_id
     logger.info("request_claimed request_id=%s actor_user_id=%s", request_id, payload.actor_user_id)
     try:
         db.commit()
@@ -168,7 +176,7 @@ def update_status(
     request_id: int, payload: RequestStatusUpdate, db: Session = Depends(get_db), _: None = Depends(require_worker)
 ) -> CitizenRequest:
     req = _require_request(db, request_id)
-    _require_user(db, payload.actor_user_id)
+    actor = _require_user(db, payload.actor_user_id)
 
     if req.status == RequestStatus.CLOSED:
         raise HTTPException(status_code=409, detail="Closed request cannot be modified")
@@ -194,6 +202,7 @@ def update_status(
             from_status=from_status,
             to_status=payload.to_status,
             changed_by_user_id=payload.actor_user_id,
+            changed_by_person_id=actor.person_id,
             change_note=payload.change_note,
             changed_at=datetime.now(timezone.utc),
         )
@@ -236,16 +245,22 @@ def add_comment(
             raise HTTPException(status_code=422, detail="author_user_id is required for worker comments")
         author = _require_user(db, payload.author_user_id)
         author_user_id = author.id
+        author_person_id = author.person_id
         author_role_value = "WORKER"
         author_display_name = f"{author.first_name} {author.last_name}"
     else:
         author_user_id = None
+        if req.citizen_person_id is None:
+            citizen_person = ensure_citizen_person(db, req.citizen_first_name, req.citizen_last_name)
+            req.citizen_person_id = citizen_person.id
+        author_person_id = req.citizen_person_id
         author_role_value = "CITIZEN"
         author_display_name = f"{req.citizen_first_name} {req.citizen_last_name}"
 
     comment = RequestComment(
         request_id=request_id,
         author_user_id=author_user_id,
+        author_person_id=author_person_id,
         author_role=author_role_value,
         author_display_name=author_display_name,
         comment_text=comment_text,

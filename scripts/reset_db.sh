@@ -4,10 +4,10 @@ set -euo pipefail
 DB_SERVICE="${DB_SERVICE:-db}"
 DB_USER="${DB_USER:-postgres}"
 DB_NAME="${DB_NAME:-citizen_requests}"
-MIGRATION_FILE="${MIGRATION_FILE:-database/migrations/001_initial_schema.sql}"
+MIGRATIONS_DIR="${MIGRATIONS_DIR:-database/migrations}"
 
-if [[ ! -f "$MIGRATION_FILE" ]]; then
-  echo "Migration file not found: $MIGRATION_FILE" >&2
+if [[ ! -d "$MIGRATIONS_DIR" ]]; then
+  echo "Migrations directory not found: $MIGRATIONS_DIR" >&2
   exit 1
 fi
 
@@ -22,7 +22,15 @@ done
 echo "Resetting schema public in database '$DB_NAME'..."
 docker compose exec -T "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"
 
-echo "Applying migration: $MIGRATION_FILE"
-docker compose exec -T "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f /dev/stdin < "$MIGRATION_FILE"
+mapfile -t migrations < <(find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name '*.sql' | sort)
+if [[ "${#migrations[@]}" -eq 0 ]]; then
+  echo "No SQL migrations found in $MIGRATIONS_DIR" >&2
+  exit 1
+fi
+
+for migration_file in "${migrations[@]}"; do
+  echo "Applying migration: $migration_file"
+  docker compose exec -T "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f /dev/stdin < "$migration_file"
+done
 
 echo "Database reset and migration applied successfully."

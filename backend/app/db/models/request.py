@@ -20,9 +20,12 @@ class CitizenRequest(Base):
     )
     citizen_first_name: Mapped[str] = mapped_column(String(50), nullable=False)
     citizen_last_name: Mapped[str] = mapped_column(String(50), nullable=False)
+    citizen_person_id: Mapped[int | None] = mapped_column(ForeignKey("person.id"), nullable=True)
+    created_by_person_id: Mapped[int | None] = mapped_column(ForeignKey("person.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     assigned_to_user_id: Mapped[int | None] = mapped_column(ForeignKey("staff_user.id"), nullable=True)
+    assigned_to_person_id: Mapped[int | None] = mapped_column(ForeignKey("person.id"), nullable=True)
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

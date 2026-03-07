@@ -15,6 +15,7 @@ class RequestStatusHistory(Base):
     from_status: Mapped[RequestStatus | None] = mapped_column(Enum(RequestStatus, name="request_status"), nullable=True)
     to_status: Mapped[RequestStatus] = mapped_column(Enum(RequestStatus, name="request_status"), nullable=False)
     changed_by_user_id: Mapped[int] = mapped_column(ForeignKey("staff_user.id"), nullable=False)
+    changed_by_person_id: Mapped[int | None] = mapped_column(ForeignKey("person.id"), nullable=True)
     change_note: Mapped[str | None] = mapped_column(String(255), nullable=True)
     changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 

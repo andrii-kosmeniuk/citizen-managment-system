@@ -12,6 +12,7 @@ class RequestComment(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     request_id: Mapped[int] = mapped_column(ForeignKey("citizen_request.id", ondelete="CASCADE"), nullable=False)
     author_user_id: Mapped[int | None] = mapped_column(ForeignKey("staff_user.id"), nullable=True)
+    author_person_id: Mapped[int | None] = mapped_column(ForeignKey("person.id"), nullable=True)
     author_role: Mapped[str] = mapped_column(String(20), nullable=False)
     author_display_name: Mapped[str] = mapped_column(String(150), nullable=False)
     comment_text: Mapped[str] = mapped_column(Text, nullable=False)
