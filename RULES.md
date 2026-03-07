@@ -2,239 +2,298 @@
 
 ## Project Context
 - Project: **Citizen Request Management System** (`Buergeranliegen-System`)
-- Domain: City administration workflow for citizen-reported issues and inquiries.
-- Goal: Provide a system to **capture, process, and track** citizen requests.
+- Goal: Provide a system to capture, process, and track citizen requests.
+- Scope now: working CRUD/workflow system with role-based behavior (`Citizen` / `Worker`) **without full authentication**.
+- Scope later: scale schema and architecture for authentication and larger functionality.
 
-## Assessment Goal
-- Demonstrate professional software engineering via **Specification Driven Development (SDD)**.
-- Focus is not coding speed.
-- Evaluation emphasizes:
-  - Problem understanding
-  - Requirement structuring
-  - Architecture decisions
-  - Meaningful AI usage in development
-  - Professional implementation quality
+## Core Principles
+- Prioritize data integrity, auditability, and backward-compatible migrations.
+- Prefer soft-delete for domain records unless explicitly required otherwise.
+- Use expand -> migrate -> contract for all structural refactors.
+- No destructive production changes without backup + reconciliation proof.
 
 ## Mandatory Technical Requirements
-- Use **Python** for implementation.
-- Deliver a **Web GUI**.
-- Deliver a **REST backend**.
-- Use a **persistent database**.
-- Ensure clear separation of:
-  - Frontend
-  - Backend
-  - Data model
-- **No LLM integration required**.
+- Python backend (REST API)
+- Web GUI frontend
+- Persistent PostgreSQL database
+- Clear separation: frontend / backend / data model
+- Reproducible startup and test flow
 
 ## Mandatory Functional Requirements
 
 ### 1) Request Creation
-Each citizen request must contain at least:
+Each request must include:
 - Title
 - Description
 - Category
 - Priority
 - Creation date
 - Status
-- Optional citizen name
+- Citizen first and last name
 
 ### 2) Category Management
-- Categories must be manageable (create/update/list/deactivate).
-- Example categories:
-  - Infrastructure
-  - Environment
-  - Traffic
-  - Other
+- Categories must be manageable by workers.
+- Worker can:
+  - create category
+  - deactivate (soft-delete) category
+  - list categories
+- Citizen can only consume categories for requests.
 
 ### 3) Status Workflow
-Required statuses:
-- New
-- In Progress
-- Clarification Needed
-- Resolved
-- Closed
+Allowed statuses:
+- `NEW`
+- `IN_PROGRESS`
+- `CLARIFICATION_NEEDED`
+- `RESOLVED`
+- `CLOSED`
 
-Business rules:
-- Closed requests must not be editable.
-- Every status change must be stored in history (audit trail).
-- Resolved requests can be moved to Closed.
-- Clarification Needed means further processing is still required.
+Rules:
+- Closed requests are immutable.
+- Every status change must be written to status history.
+- Transitions must follow workflow constraints.
 
-### 4) Staff Processing Actions
-Staff users must be able to:
-- Claim/take ownership of a request
-- Change request status
-- Add comments
-- Keep comments historically (no loss of comment history)
+### 4) Request Processing
+Workers can:
+- claim/assign request
+- change status
+- add comments
 
-### 5) Dashboard / GUI Minimum Scope
-The GUI must provide at least:
-- List of all requests
-- Filters by status/category/priority
-- Request detail view
-- Status change action
-- Add comment action
+Citizens can:
+- create request
+- list/filter/view requests
+- add comments
 
-## Expected Development Approach (SDD)
-Before implementation, provide structured specification work including:
-- Problem understanding
-- Assumptions
-- Domain model
-- Use cases / user stories
-- Architecture overview
-- Key design decisions
-- Discussion of alternatives
+### 5) Dashboard / GUI
+Must provide:
+- request list
+- filters (`status`, `category`, `priority`)
+- request details
+- comments
+- status history
+- worker-only management actions
 
-## Required Deliverables (for submission)
-
-### 1) Concept & Specification (e.g., Markdown)
-Must include:
-- Problem understanding
-- Assumptions
-- Domain model
-- Use cases / user stories
-- Architecture overview
-- Key design decisions
-- Alternatives discussion
-
-### 2) Quality Assurance
-Must include:
-- Unit tests
-- Basic GUI or integration tests
-- Reproducible application startup
-
-Optional bonus:
-- Static code analysis (e.g., Sonar)
-- Security scan (e.g., Trivy)
-- CI/CD setup
-- Docker setup
-
-### 3) Development Documentation
-Must include:
-- How AI was used
-- Where AI helped
-- Where AI did not help
-- Prompts/workflow used
-
-## Non-goals / Not Decisive
-- Framework choice is not decisive.
-- Pixel-perfect UI is not required.
-- Maximum number of features is not required.
-
-## Execution / Implementation Plan (Detailed)
+## Execution / Implementation Plan
 
 ### Phase 0: Foundation & Setup
-- [x] Create directory structure (`backend/`, `frontend/`, `database/`, `docs/`, `scripts/`).
-- [x] Add root config files (`README.md`, `.env.example`, `docker-compose.yml`, `.gitignore`).
-- [x] Define local run commands for backend/frontend.
-- [x] Define reproducible startup flow (`docker compose up`, migration apply, app start).
+- [x] Create project structure and root configs.
+- [x] Add reproducible run/reset/test scripts.
+- [x] Dockerized PostgreSQL setup.
 
-#### Test checkpoint after Phase 0
-- [x] Verify Docker services start without errors.
-- [x] Verify environment variables are loaded correctly.
-- [ ] Verify project can be started from a clean clone using documented commands.
+#### Test Gate
+- [x] Project starts from scripts.
+- [x] DB container starts and is reachable.
 
-### Phase 1: Database Design & Migration
-- [x] Finalize schema entities: `staff_user`, `category`, `citizen_request`, `request_comment`, `request_status_history`.
-- [x] Add required constraints (non-empty text, enum checks, required timestamps for resolved/closed states).
-- [x] Add FK relationships and cascading behavior where needed.
-- [x] Add indexes for API filter/query patterns (`status`, `category_id`, `priority`, `assigned_to_user_id`, timestamps).
-- [x] Add DB triggers/functions for workflow integrity and immutable closed requests.
-- [x] Keep migration as run-once; provide separate dev reset script.
+### Phase 1: Database Core
+- [x] Implement base schema (`staff_user`, `category`, `citizen_request`, `request_comment`, `request_status_history`).
+- [x] Add constraints, indexes, status transition triggers, closed-request protections.
+- [x] Add dev reset script and DB validation script.
 
-#### Test checkpoint after Phase 1 (Database)
-- [x] Execute migration on empty DB successfully.
-- [x] Run dev reset script and reapply migration successfully.
-- [x] Insert sample records to verify FK constraints and enum validation.
-- [x] Verify invalid status transitions fail.
-- [x] Verify updates/comments on closed requests fail.
+#### Test Gate
+- [x] Migration applies cleanly.
+- [x] FK/enums/workflow validations pass.
 
-### Phase 2: Backend Domain & API
-- [x] Implement DB/ORM models mapped to actual schema names.
-- [x] Implement service layer for business rules (claim, transition, history write, closed-lock behavior).
-- [x] Implement category REST endpoints (list/create/update/deactivate).
-- [x] Implement request REST endpoints (create/list/detail).
-- [x] Implement request action endpoints (claim/status change/add comment).
-- [x] Implement request validation and consistent error responses.
-- [x] Add health endpoint and config loading.
+### Phase 2: Backend API
+- [x] Implement models/schemas/routes/services.
+- [x] Implement category endpoints and request endpoints.
+- [x] Add consistent errors, validation, logging, health route.
 
-#### Test checkpoint after Phase 2 (Backend)
-- [x] Unit tests for workflow logic and service methods.
-- [x] API tests for each endpoint (happy path + invalid input + forbidden transition).
-- [x] Verify status history is written for each status change.
-- [x] Verify closed requests are immutable via API.
-- [x] Verify filtering works (`status/category/priority`).
+#### Test Gate
+- [x] Backend unit/integration tests pass.
 
-### Phase 3: Frontend Implementation
-- [x] Build dashboard list view for all requests.
-- [x] Implement filter UI (status/category/priority) and backend query integration.
-- [x] Build request detail page with comments and status history.
-- [x] Implement actions: claim request, change status, add comment.
+### Phase 3: Frontend
+- [x] Implement list/filter/detail/create flows.
+- [x] Implement claim/status/comment actions.
 - [x] Add loading/error/empty states.
-- [x] Ensure responsive behavior on desktop and mobile.
 
-#### Test checkpoint after Phase 3 (Frontend)
-- [x] Component tests for key UI blocks (list, filters, detail, status form, comment form).
-- [x] E2E/basic GUI test: create request.
-- [x] E2E/basic GUI test: claim request.
-- [x] E2E/basic GUI test: run status change sequence.
-- [x] E2E/basic GUI test: add comment.
-- [x] E2E/basic GUI test: verify blocked action on closed request.
+#### Test Gate
+- [x] Frontend tests and build pass.
 
-### Phase 4: Integration, Quality, and Hardening
-- [x] Validate frontend-backend integration end-to-end.
-- [x] Standardize API contracts and error handling.
-- [x] Add logging and basic observability for key operations.
-- [x] Add lint/format/test commands and optional CI pipeline.
-- [x] Optionally add static analysis and security scan tools.
+### Phase 4: Integration & Quality
+- [x] Integrate frontend/backend flows.
+- [x] Add lint/test/build check scripts.
+- [x] Add reproducible full checks.
 
-#### Test checkpoint after Phase 4 (Integration/Quality)
-- [x] Full integration test suite passes.
-- [x] Regression test for core workflow passes.
-- [x] Security/static scans run (if enabled) without critical findings.
-- [x] Startup/run/test commands are reproducible on a fresh environment.
+#### Test Gate
+- [x] `./scripts/check_all.sh` passes.
 
-### Phase 5: Role Selection & Permission Scope (Citizen vs Worker)
-- [x] Add entry screen or toggle to choose role: `Citizen` or `Worker`.
-- [x] Persist selected role in frontend state (and optionally local storage for session continuity).
-- [x] Define permission matrix and enforce in UI:
-  - [x] `Citizen`: create request, list/filter requests, view request details, add comments.
-  - [x] `Worker`: all citizen permissions plus create category, claim/assign request by worker ID, update request status.
-- [x] Add backend role-aware authorization model for protected actions:
-  - [x] Restrict category create/update/deactivate to `Worker`.
-  - [x] Restrict claim and status update endpoints to `Worker`.
-  - [x] Keep comment creation available for both roles.
-- [x] Extend API contracts/schemas to carry actor role or actor type where needed.
-- [x] Add clear frontend UX behavior for unauthorized actions (hidden/disabled controls and readable error messages).
-- [x] Ensure auditability remains intact when `Worker` actions are performed (status history and actor IDs still recorded).
+### Phase 5: Role-Based Behavior (No Auth Yet)
+- [x] Role selector in UI (`Citizen` / `Worker`).
+- [x] Backend role guard via request header (`X-Actor-Role`) for protected actions.
+- [x] Citizen vs Worker permissions enforced in UI and API.
+- [x] Worker-only worker list table added.
+- [x] Worker category add/delete UI added.
 
-#### Test checkpoint after Phase 5 (Role-Based Access)
-- [x] UI test: role selector appears first and role choice updates available actions.
-- [x] Citizen test: can create/list/filter/view/comment; cannot see or execute category management.
-- [x] Citizen test: cannot claim request or update status (UI blocked + API returns forbidden).
-- [x] Worker test: can perform all citizen actions plus category management.
-- [x] Worker test: can claim request by worker ID and update status through valid workflow.
-- [x] API authorization test: protected endpoints reject citizen role and allow worker role.
-- [x] Regression test: closed-request immutability still enforced for both roles.
+#### Test Gate
+- [x] Role-based API and UI tests pass.
 
-### Phase 6: Documentation & Submission Packaging
-- [ ] Complete `docs/specification.md` with SDD artifacts and assumptions.
-- [ ] Complete `docs/architecture.md` with decisions and alternatives.
-- [ ] Complete `docs/ai-usage.md` with prompt/workflow reflection.
-- [ ] Ensure README contains exact setup, run, reset, and test instructions.
-- [ ] Prepare final ZIP with code + docs + test assets.
+### Phase 6: Scalable DB Refactor (Auth-Ready, Auth Not Implemented)
 
-#### Test checkpoint after Phase 6 (Final Verification)
-- [ ] Validate submission contents against required deliverables checklist.
-- [ ] Re-run full test suite before packaging.
-- [ ] Confirm all acceptance criteria are demonstrably met.
+#### Objective
+Move toward scalable identity model now, while keeping current no-auth runtime behavior.
+
+#### Required New Entities
+- [ ] `person`
+- [ ] `citizen_profile` (1:1 with `person`)
+- [ ] `staff_profile` (1:1 with `person`)
+- [ ] `role` (role catalog: `CITIZEN`, `WORKER`, optional `ADMIN`)
+- [ ] `person_role` (M:N mapping between `person` and `role`)
+
+#### Detailed Entity Blueprint (Target Structure)
+
+##### `person`
+- `id` `BIGSERIAL` PK
+- `first_name` `VARCHAR(50)` NOT NULL
+- `last_name` `VARCHAR(50)` NOT NULL
+- `email` `VARCHAR(255)` NULL UNIQUE (nullable for citizens without account)
+- `phone` `VARCHAR(30)` NULL
+- `is_active` `BOOLEAN` NOT NULL DEFAULT `TRUE`
+- `created_at` `TIMESTAMPTZ` NOT NULL DEFAULT `NOW()`
+- `updated_at` `TIMESTAMPTZ` NOT NULL DEFAULT `NOW()`
+- Constraints:
+  - non-blank `first_name`, `last_name`
+  - if `email` exists, it must be normalized in app layer (lowercase, trimmed)
+
+##### `citizen_profile`
+- `id` `BIGSERIAL` PK
+- `person_id` `BIGINT` NOT NULL UNIQUE FK -> `person(id)` ON DELETE CASCADE
+- `preferred_contact_method` `VARCHAR(20)` NULL (`EMAIL`/`PHONE`/`NONE`)
+- `address_line` `VARCHAR(255)` NULL
+- `district` `VARCHAR(100)` NULL
+- `created_at` `TIMESTAMPTZ` NOT NULL DEFAULT `NOW()`
+- `updated_at` `TIMESTAMPTZ` NOT NULL DEFAULT `NOW()`
+
+##### `staff_profile`
+- `id` `BIGSERIAL` PK
+- `person_id` `BIGINT` NOT NULL UNIQUE FK -> `person(id)` ON DELETE CASCADE
+- `employee_code` `VARCHAR(50)` NOT NULL UNIQUE
+- `department` `VARCHAR(100)` NULL
+- `position_title` `VARCHAR(100)` NULL
+- `is_available` `BOOLEAN` NOT NULL DEFAULT `TRUE`
+- `created_at` `TIMESTAMPTZ` NOT NULL DEFAULT `NOW()`
+- `updated_at` `TIMESTAMPTZ` NOT NULL DEFAULT `NOW()`
+
+##### `role`
+- `id` `BIGSERIAL` PK
+- `code` `VARCHAR(30)` NOT NULL UNIQUE (examples: `CITIZEN`, `WORKER`, `ADMIN`)
+- `description` `VARCHAR(255)` NULL
+- `is_active` `BOOLEAN` NOT NULL DEFAULT `TRUE`
+- `created_at` `TIMESTAMPTZ` NOT NULL DEFAULT `NOW()`
+
+##### `person_role`
+- `id` `BIGSERIAL` PK
+- `person_id` `BIGINT` NOT NULL FK -> `person(id)` ON DELETE CASCADE
+- `role_id` `BIGINT` NOT NULL FK -> `role(id)` ON DELETE RESTRICT
+- `assigned_at` `TIMESTAMPTZ` NOT NULL DEFAULT `NOW()`
+- Unique constraint:
+  - `UNIQUE(person_id, role_id)`
+
+##### `category`
+- `id` `BIGSERIAL` PK
+- `name` `VARCHAR(100)` NOT NULL
+- `description` `VARCHAR(255)` NULL
+- `is_active` `BOOLEAN` NOT NULL DEFAULT `TRUE`
+- `created_at` `TIMESTAMPTZ` NOT NULL DEFAULT `NOW()`
+- `updated_at` `TIMESTAMPTZ` NOT NULL DEFAULT `NOW()`
+- Constraints/indexes:
+  - non-blank `name`
+  - unique normalized name index: `UNIQUE (LOWER(BTRIM(name)))`
+
+##### `citizen_request`
+- `id` `BIGSERIAL` PK
+- `title` `VARCHAR(100)` NOT NULL
+- `description` `TEXT` NOT NULL
+- `category_id` `BIGINT` NOT NULL FK -> `category(id)`
+- `priority` `request_priority` NOT NULL (`LOW|MEDIUM|HIGH|CRITICAL`)
+- `status` `request_status` NOT NULL DEFAULT `NEW`
+- `created_by_person_id` `BIGINT` NOT NULL FK -> `person(id)` ON DELETE RESTRICT
+- `assigned_to_person_id` `BIGINT` NULL FK -> `person(id)` ON DELETE SET NULL
+- `resolved_at` `TIMESTAMPTZ` NULL
+- `closed_at` `TIMESTAMPTZ` NULL
+- `created_at` `TIMESTAMPTZ` NOT NULL DEFAULT `NOW()`
+- `updated_at` `TIMESTAMPTZ` NOT NULL DEFAULT `NOW()`
+- Constraints:
+  - non-blank `title`, `description`
+  - `resolved_at` required when status in (`RESOLVED`, `CLOSED`)
+  - `closed_at` required when status = `CLOSED`
+
+##### `request_comment`
+- `id` `BIGSERIAL` PK
+- `request_id` `BIGINT` NOT NULL FK -> `citizen_request(id)` ON DELETE CASCADE
+- `author_person_id` `BIGINT` NOT NULL FK -> `person(id)` ON DELETE RESTRICT
+- `author_role_code` `VARCHAR(30)` NOT NULL (snapshot: `CITIZEN` or `WORKER`)
+- `author_display_name` `VARCHAR(150)` NOT NULL
+- `comment_text` `TEXT` NOT NULL
+- `created_at` `TIMESTAMPTZ` NOT NULL DEFAULT `NOW()`
+- Constraints:
+  - non-blank `comment_text`
+  - non-blank `author_display_name`
+
+##### `request_status_history`
+- `id` `BIGSERIAL` PK
+- `request_id` `BIGINT` NOT NULL FK -> `citizen_request(id)` ON DELETE CASCADE
+- `from_status` `request_status` NULL
+- `to_status` `request_status` NOT NULL
+- `changed_by_person_id` `BIGINT` NOT NULL FK -> `person(id)` ON DELETE RESTRICT
+- `change_note` `VARCHAR(255)` NULL
+- `changed_at` `TIMESTAMPTZ` NOT NULL DEFAULT `NOW()`
+- Constraints:
+  - `from_status IS NULL OR from_status <> to_status`
+  - trigger-enforced valid workflow transitions
+
+#### Explicitly Deferred for Later
+- [ ] `auth_account` (deferred; not implemented in this phase)
+
+#### Strict Migration Rules
+- [ ] Never edit already-applied migration files.
+- [ ] Add only new numbered migrations.
+- [ ] Use expand -> migrate -> contract.
+- [ ] Add nullable new columns first.
+- [ ] Backfill data before adding NOT NULL constraints.
+- [ ] Keep old and new columns in dual-write period.
+- [ ] Remove legacy columns only after reconciliation and release-cycle proof.
+
+#### Step-by-Step Tasks
+- [ ] 6.1 Add new identity tables (`person`, `citizen_profile`, `staff_profile`, `role`, `person_role`).
+- [ ] 6.2 Seed base roles (`CITIZEN`, `WORKER`, optionally `ADMIN`).
+- [ ] 6.3 Add nullable FK columns in existing tables:
+  - `citizen_request.created_by_person_id`
+  - `citizen_request.assigned_to_person_id`
+  - `request_comment.author_person_id`
+  - `request_status_history.changed_by_person_id`
+- [ ] 6.4 Backfill `person` from existing staff and citizen request data.
+- [ ] 6.5 Backfill profiles and role mappings.
+- [ ] 6.6 Backfill new FK columns in request/comment/history.
+- [ ] 6.7 Add backend dual-write for legacy + new identity references.
+- [ ] 6.8 Switch backend read-path to person/profile model with safe fallback.
+- [ ] 6.9 Enforce NOT NULL + strict FK constraints after data verification.
+- [ ] 6.10 Remove legacy columns/tables in contract phase.
+
+#### Reconciliation Rules
+- [ ] Generate SQL reconciliation report artifacts in `database/reports/`:
+  - orphan checks
+  - null checks for mandatory mappings
+  - row count parity checks
+- [ ] Resolve all anomalies before contract phase.
+
+#### Test Gates
+- [ ] Gate A: migrations apply on clean clone.
+- [ ] Gate B: backfill coverage is 100% for mapped rows.
+- [ ] Gate C: dual-write parity tests pass.
+- [ ] Gate D: full regression (`check_all`) passes on new read-path.
+- [ ] Gate E: fresh-clone simulation + backup/restore drill passes.
+
+### Phase 7: Documentation & Submission
+- [ ] Update `docs/specification.md` with assumptions, domain model, and migration rationale.
+- [ ] Update `docs/architecture.md` with scalable identity design and alternatives.
+- [ ] Update `docs/ai-usage.md` with workflow and prompts.
+- [ ] Update `README.md` run/reset/test instructions.
+- [ ] Final package readiness check.
 
 ## Acceptance Criteria
-- [ ] Users can create requests with all required fields.
-- [ ] Categories are manageable.
-- [ ] Staff can claim requests, update status, and add comments.
-- [ ] Closed requests cannot be modified.
-- [ ] Status history is recorded and queryable.
-- [ ] Dashboard supports list/filter/detail/status/comment operations.
-- [ ] Role selection enforces `Citizen` vs `Worker` permissions correctly.
-- [ ] Project runs reproducibly and tests are executable.
+- [ ] Request lifecycle works end-to-end with enforced workflow.
+- [ ] Category management works with worker-only modifications.
+- [ ] Closed requests remain immutable.
+- [ ] Status and comments remain fully auditable.
+- [ ] Role behavior works without auth implementation.
+- [ ] DB refactor plan is strict, staged, and reversible.
+- [ ] Project runs and tests reproducibly on fresh setup.

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 
-import { createCategory, createRequest, fetchCategories, fetchRequests, fetchStaffUsers } from "../api/client";
+import { createCategory, createRequest, deleteCategory, fetchCategories, fetchRequests, fetchStaffUsers } from "../api/client";
 import { RequestFilters } from "../components/RequestFilters";
 import { RequestList } from "../components/RequestList";
 import { StaffUserList } from "../components/StaffUserList";
@@ -29,6 +29,7 @@ export function RequestsPage() {
   const [error, setError] = useState<string | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryDescription, setNewCategoryDescription] = useState("");
+  const [deleteCategoryId, setDeleteCategoryId] = useState(0);
 
   const [createForm, setCreateForm] = useState<CreateRequestPayload>({
     creator_user_id: 1,
@@ -47,6 +48,11 @@ export function RequestsPage() {
     setCategories(list);
     if (!createForm.category_id && list.length > 0) {
       setCreateForm((prev) => ({ ...prev, category_id: list[0].id }));
+    }
+    if (list.length > 0) {
+      setDeleteCategoryId((prev) => (prev ? prev : list[0].id));
+    } else {
+      setDeleteCategoryId(0);
     }
   };
 
@@ -126,6 +132,21 @@ export function RequestsPage() {
       await loadCategories();
       setNewCategoryName("");
       setNewCategoryDescription("");
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  const handleDeleteCategory = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!deleteCategoryId) {
+      return;
+    }
+    setError(null);
+    try {
+      await deleteCategory(actorRole, deleteCategoryId);
+      await loadCategories();
+      await loadRequests(filters);
     } catch (err) {
       setError((err as Error).message);
     }
@@ -213,30 +234,53 @@ export function RequestsPage() {
       </form>
 
       {isWorker && (
-        <form
-          data-testid="worker-category-form"
-          onSubmit={handleCreateCategory}
-          style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, marginBottom: 16 }}
-        >
-          <h2>Worker: Add Category</h2>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <input
-              data-testid="worker-category-name"
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              placeholder="Category name (e.g. Food)"
-            />
-            <input
-              data-testid="worker-category-description"
-              value={newCategoryDescription}
-              onChange={(e) => setNewCategoryDescription(e.target.value)}
-              placeholder="Category description (optional)"
-            />
-            <button data-testid="worker-category-submit" type="submit" disabled={!newCategoryName.trim()}>
-              Add Category
-            </button>
-          </div>
-        </form>
+        <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, marginBottom: 16 }}>
+          <form data-testid="worker-category-form" onSubmit={handleCreateCategory}>
+            <h2>Worker: Add Category</h2>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <input
+                data-testid="worker-category-name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="Category name (e.g. Food)"
+              />
+              <input
+                data-testid="worker-category-description"
+                value={newCategoryDescription}
+                onChange={(e) => setNewCategoryDescription(e.target.value)}
+                placeholder="Category description (optional)"
+              />
+              <button data-testid="worker-category-submit" type="submit" disabled={!newCategoryName.trim()}>
+                Add Category
+              </button>
+            </div>
+          </form>
+
+          <form data-testid="worker-category-delete-form" onSubmit={handleDeleteCategory} style={{ marginTop: 12 }}>
+            <h2>Worker: Delete Category</h2>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <select
+                data-testid="worker-delete-category-select"
+                value={deleteCategoryId}
+                onChange={(e) => setDeleteCategoryId(Number(e.target.value))}
+                disabled={categories.length === 0}
+              >
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                data-testid="worker-delete-category-submit"
+                type="submit"
+                disabled={categories.length === 0 || !deleteCategoryId}
+              >
+                Delete Category
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
       <RequestFilters

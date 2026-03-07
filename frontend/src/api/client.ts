@@ -120,6 +120,12 @@ export async function createCategory(role: ActorRole, name: string, description?
   });
 }
 
+export async function deleteCategory(role: ActorRole, categoryId: number): Promise<void> {
+  await fetchJson<void>(`${API_BASE}/categories/${categoryId}`, role, {
+    method: "DELETE",
+  });
+}
+
 export async function fetchStaffUsers(role: ActorRole): Promise<StaffUser[]> {
   return fetchJson<StaffUser[]>(`${API_BASE}/staff-users`, role);
 }
