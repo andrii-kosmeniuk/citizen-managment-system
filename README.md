@@ -13,11 +13,31 @@
 docker compose up -d db
 ```
 
+## Full stack with Docker (recommended)
+
+Run DB + backend + frontend with all dependencies inside containers:
+
+```bash
+docker compose up --build
+```
+
+Open:
+- Frontend: `http://localhost:5173`
+- Backend API docs: `http://localhost:8000/docs`
+
+Stop:
+
+```bash
+docker compose down
+```
+
 ## 2) Apply schema
 
 ```bash
 psql "postgresql://postgres:postgres@localhost:5432/citizen_requests" -f database/migrations/001_initial_schema.sql
 ```
+
+Note: in Docker mode, backend container applies pending migrations automatically on startup.
 
 ## Dev DB reset (drop + recreate schema + migrate)
 
