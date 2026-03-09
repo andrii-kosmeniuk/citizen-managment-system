@@ -29,14 +29,14 @@ def create_category(
 ) -> Category:
     name = payload.name.strip()
     if not name:
-        raise HTTPException(status_code=422, detail="name must not be blank")
+        raise HTTPException(status_code=422, detail="Der Kategoriename darf nicht leer sein.")
     category = Category(name=name, description=payload.description)
     db.add(category)
     try:
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Category name must be unique") from exc
+        raise HTTPException(status_code=409, detail="Der Kategoriename muss eindeutig sein.") from exc
     db.refresh(category)
     logger.info("category_created category_id=%s", category.id)
     return category
@@ -48,12 +48,12 @@ def update_category(
 ) -> Category:
     category = db.get(Category, category_id)
     if not category:
-        raise HTTPException(status_code=404, detail="Category not found")
+        raise HTTPException(status_code=404, detail="Kategorie nicht gefunden.")
 
     if payload.name is not None:
         name = payload.name.strip()
         if not name:
-            raise HTTPException(status_code=422, detail="name must not be blank")
+            raise HTTPException(status_code=422, detail="Der Kategoriename darf nicht leer sein.")
         category.name = name
     if payload.description is not None:
         category.description = payload.description
@@ -64,7 +64,7 @@ def update_category(
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Category name must be unique") from exc
+        raise HTTPException(status_code=409, detail="Der Kategoriename muss eindeutig sein.") from exc
     db.refresh(category)
     logger.info("category_updated category_id=%s", category_id)
     return category
@@ -74,7 +74,7 @@ def update_category(
 def deactivate_category(category_id: int, db: Session = Depends(get_db), _: None = Depends(require_worker)) -> None:
     category = db.get(Category, category_id)
     if not category:
-        raise HTTPException(status_code=404, detail="Category not found")
+        raise HTTPException(status_code=404, detail="Kategorie nicht gefunden.")
 
     category.is_active = False
     db.commit()

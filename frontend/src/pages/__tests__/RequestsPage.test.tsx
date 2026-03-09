@@ -82,7 +82,7 @@ vi.mock("../../api/client", () => {
     ),
     addRequestComment: vi.fn().mockImplementation(async () => {
       if (currentStatus === "CLOSED") {
-        throw new Error("Closed request cannot be modified");
+        throw new Error("Ein geschlossenes Anliegen kann nicht bearbeitet werden.");
       }
       comments = [
         ...comments,

@@ -33,7 +33,7 @@ logger = get_logger(__name__)
 def _require_user(db: Session, user_id: int) -> StaffUser:
     user = db.get(StaffUser, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail=f"Staff user {user_id} not found")
+        raise HTTPException(status_code=404, detail=f"Mitarbeiter mit ID {user_id} wurde nicht gefunden.")
     ensure_staff_person(db, user)
     return user
 
@@ -44,7 +44,10 @@ def _resolve_creator(db: Session, creator_user_id: int | None) -> StaffUser:
 
     fallback = db.scalar(select(StaffUser).where(StaffUser.is_active.is_(True)).order_by(StaffUser.id.asc()))
     if fallback is None:
-        raise HTTPException(status_code=409, detail="No active staff user is available to register request creation")
+        raise HTTPException(
+            status_code=409,
+            detail="Es ist kein aktiver Mitarbeiter verfuegbar, um die Erstellung des Anliegens zu registrieren.",
+        )
     ensure_staff_person(db, fallback)
     return fallback
 
@@ -52,14 +55,14 @@ def _resolve_creator(db: Session, creator_user_id: int | None) -> StaffUser:
 def _require_request(db: Session, request_id: int) -> CitizenRequest:
     req = db.get(CitizenRequest, request_id)
     if not req:
-        raise HTTPException(status_code=404, detail="Request not found")
+        raise HTTPException(status_code=404, detail="Anliegen nicht gefunden.")
     return req
 
 
 def _require_category(db: Session, category_id: int) -> Category:
     category = db.get(Category, category_id)
     if not category:
-        raise HTTPException(status_code=404, detail=f"Category {category_id} not found")
+        raise HTTPException(status_code=404, detail=f"Kategorie mit ID {category_id} wurde nicht gefunden.")
     return category
 
 
@@ -77,7 +80,8 @@ def list_requests(
         stmt = stmt.where(CitizenRequest.category_id == category_id)
     if priority is not None:
         stmt = stmt.where(CitizenRequest.priority == priority)
-    stmt = stmt.order_by(CitizenRequest.created_at.desc())
+    # Keep display order deterministic: higher request IDs are shown first.
+    stmt = stmt.order_by(CitizenRequest.id.desc())
 
     return list(db.scalars(stmt).all())
 
@@ -89,7 +93,7 @@ def create_request(
     actor_role: ActorRole = Depends(get_actor_role),
 ) -> CitizenRequest:
     if actor_role != "citizen":
-        raise HTTPException(status_code=403, detail="Citizen role is required for this action")
+        raise HTTPException(status_code=403, detail="Fuer diese Aktion ist die Rolle 'citizen' erforderlich.")
 
     creator = _resolve_creator(db, payload.creator_user_id)
     _require_category(db, payload.category_id)
@@ -99,13 +103,13 @@ def create_request(
     citizen_first_name = payload.citizen_first_name.strip()
     citizen_last_name = payload.citizen_last_name.strip()
     if not title:
-        raise HTTPException(status_code=422, detail="title must not be blank")
+        raise HTTPException(status_code=422, detail="Der Titel darf nicht leer sein.")
     if not description:
-        raise HTTPException(status_code=422, detail="description must not be blank")
+        raise HTTPException(status_code=422, detail="Die Beschreibung darf nicht leer sein.")
     if not citizen_first_name:
-        raise HTTPException(status_code=422, detail="citizen_first_name must not be blank")
+        raise HTTPException(status_code=422, detail="Der Vorname darf nicht leer sein.")
     if not citizen_last_name:
-        raise HTTPException(status_code=422, detail="citizen_last_name must not be blank")
+        raise HTTPException(status_code=422, detail="Der Nachname darf nicht leer sein.")
 
     citizen_person = ensure_citizen_person(db, citizen_first_name, citizen_last_name)
 
@@ -139,7 +143,10 @@ def create_request(
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Could not create request due to data integrity rules") from exc
+        raise HTTPException(
+            status_code=409,
+            detail="Das Anliegen konnte aufgrund von Datenintegritaetsregeln nicht erstellt werden.",
+        ) from exc
     db.refresh(request)
     return request
 
@@ -175,7 +182,7 @@ def claim_request(
     actor = _require_user(db, payload.actor_user_id)
 
     if req.status == RequestStatus.CLOSED:
-        raise HTTPException(status_code=409, detail="Closed request cannot be modified")
+        raise HTTPException(status_code=409, detail="Ein geschlossenes Anliegen kann nicht bearbeitet werden.")
 
     req.assigned_to_user_id = payload.actor_user_id
     req.assigned_to_person_id = actor.person_id
@@ -184,7 +191,10 @@ def claim_request(
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Could not claim request due to data integrity rules") from exc
+        raise HTTPException(
+            status_code=409,
+            detail="Das Anliegen konnte aufgrund von Datenintegritaetsregeln nicht uebernommen werden.",
+        ) from exc
     db.refresh(req)
     return req
 
@@ -197,12 +207,12 @@ def update_status(
     actor = _require_user(db, payload.actor_user_id)
 
     if req.status == RequestStatus.CLOSED:
-        raise HTTPException(status_code=409, detail="Closed request cannot be modified")
+        raise HTTPException(status_code=409, detail="Ein geschlossenes Anliegen kann nicht bearbeitet werden.")
 
     if not is_valid_transition(req.status, payload.to_status):
         raise HTTPException(
             status_code=409,
-            detail=f"Invalid transition from {req.status.value} to {payload.to_status.value}",
+            detail=f"Ungueltiger Statuswechsel von {req.status.value} zu {payload.to_status.value}.",
         )
 
     from_status = req.status
@@ -237,7 +247,10 @@ def update_status(
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Status change violates data integrity rules") from exc
+        raise HTTPException(
+            status_code=409,
+            detail="Die Statusaenderung verletzt Datenintegritaetsregeln.",
+        ) from exc
     db.refresh(req)
     return req
 
@@ -252,15 +265,15 @@ def add_comment(
     req = _require_request(db, request_id)
 
     if req.status == RequestStatus.CLOSED:
-        raise HTTPException(status_code=409, detail="Closed request cannot be modified")
+        raise HTTPException(status_code=409, detail="Ein geschlossenes Anliegen kann nicht bearbeitet werden.")
 
     comment_text = payload.comment_text.strip()
     if not comment_text:
-        raise HTTPException(status_code=422, detail="comment_text must not be blank")
+        raise HTTPException(status_code=422, detail="Der Kommentartext darf nicht leer sein.")
 
     if actor_role == "worker":
         if payload.author_user_id is None:
-            raise HTTPException(status_code=422, detail="author_user_id is required for worker comments")
+            raise HTTPException(status_code=422, detail="Fuer Mitarbeiterkommentare ist author_user_id erforderlich.")
         author = _require_user(db, payload.author_user_id)
         author_user_id = author.id
         author_person_id = author.person_id
@@ -294,6 +307,9 @@ def add_comment(
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Could not add comment due to data integrity rules") from exc
+        raise HTTPException(
+            status_code=409,
+            detail="Der Kommentar konnte aufgrund von Datenintegritaetsregeln nicht hinzugefuegt werden.",
+        ) from exc
     db.refresh(comment)
     return comment
