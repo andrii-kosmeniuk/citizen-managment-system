@@ -1,4 +1,5 @@
 import type { CitizenRequest } from "../types/request";
+import type { RequestPriority, RequestStatus } from "../types/request";
 
 interface Props {
   requests: CitizenRequest[];
@@ -6,9 +7,24 @@ interface Props {
   onSelect: (requestId: number) => void;
 }
 
+const STATUS_LABELS: Record<RequestStatus, string> = {
+  NEW: "Neu",
+  IN_PROGRESS: "In Bearbeitung",
+  CLARIFICATION_NEEDED: "Rueckfrage",
+  RESOLVED: "Erledigt",
+  CLOSED: "Geschlossen",
+};
+
+const PRIORITY_LABELS: Record<RequestPriority, string> = {
+  LOW: "Niedrig",
+  MEDIUM: "Mittel",
+  HIGH: "Hoch",
+  CRITICAL: "Kritisch",
+};
+
 export function RequestList({ requests, selectedRequestId, onSelect }: Props) {
   if (requests.length === 0) {
-    return <p>No requests found.</p>;
+    return <p>Keine Anliegen gefunden.</p>;
   }
 
   return (
@@ -16,10 +32,10 @@ export function RequestList({ requests, selectedRequestId, onSelect }: Props) {
       <thead>
         <tr>
           <th>ID</th>
-          <th>Title</th>
-          <th>Citizen</th>
+          <th>Titel</th>
+          <th>Buerger</th>
           <th>Status</th>
-          <th>Priority</th>
+          <th>Prioritaet</th>
         </tr>
       </thead>
       <tbody>
@@ -38,8 +54,8 @@ export function RequestList({ requests, selectedRequestId, onSelect }: Props) {
             <td>
               {item.citizen_first_name} {item.citizen_last_name}
             </td>
-            <td>{item.status}</td>
-            <td>{item.priority}</td>
+            <td>{STATUS_LABELS[item.status]}</td>
+            <td>{PRIORITY_LABELS[item.priority]}</td>
           </tr>
         ))}
       </tbody>

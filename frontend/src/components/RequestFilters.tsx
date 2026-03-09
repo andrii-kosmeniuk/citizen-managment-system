@@ -17,6 +17,19 @@ interface Props {
 
 const STATUSES: RequestStatus[] = ["NEW", "IN_PROGRESS", "CLARIFICATION_NEEDED", "RESOLVED", "CLOSED"];
 const PRIORITIES: RequestPriority[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+const STATUS_LABELS: Record<RequestStatus, string> = {
+  NEW: "Neu",
+  IN_PROGRESS: "In Bearbeitung",
+  CLARIFICATION_NEEDED: "Rueckfrage",
+  RESOLVED: "Erledigt",
+  CLOSED: "Geschlossen",
+};
+const PRIORITY_LABELS: Record<RequestPriority, string> = {
+  LOW: "Niedrig",
+  MEDIUM: "Mittel",
+  HIGH: "Hoch",
+  CRITICAL: "Kritisch",
+};
 
 export function RequestFilters({ categories, value, onChange, onApply, onReset }: Props) {
   return (
@@ -28,17 +41,17 @@ export function RequestFilters({ categories, value, onChange, onApply, onReset }
           value={value.status ?? ""}
           onChange={(e) => onChange({ ...value, status: (e.target.value || undefined) as RequestStatus | undefined })}
         >
-          <option value="">All</option>
+          <option value="">Alle</option>
           {STATUSES.map((status) => (
             <option key={status} value={status}>
-              {status}
+              {STATUS_LABELS[status]}
             </option>
           ))}
         </select>
       </label>
 
       <label>
-        Category
+        Kategorie
         <select
           data-testid="filter-category"
           value={value.category_id ?? ""}
@@ -49,7 +62,7 @@ export function RequestFilters({ categories, value, onChange, onApply, onReset }
             })
           }
         >
-          <option value="">All</option>
+          <option value="">Alle</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
               {category.name}
@@ -59,16 +72,16 @@ export function RequestFilters({ categories, value, onChange, onApply, onReset }
       </label>
 
       <label>
-        Priority
+        Prioritaet
         <select
           data-testid="filter-priority"
           value={value.priority ?? ""}
           onChange={(e) => onChange({ ...value, priority: (e.target.value || undefined) as RequestPriority | undefined })}
         >
-          <option value="">All</option>
+          <option value="">Alle</option>
           {PRIORITIES.map((priority) => (
             <option key={priority} value={priority}>
-              {priority}
+              {PRIORITY_LABELS[priority]}
             </option>
           ))}
         </select>
@@ -76,10 +89,10 @@ export function RequestFilters({ categories, value, onChange, onApply, onReset }
 
       <div style={{ display: "flex", gap: 8, alignItems: "end" }}>
         <button data-testid="filter-apply" onClick={onApply}>
-          Apply
+          Anwenden
         </button>
         <button data-testid="filter-reset" onClick={onReset}>
-          Reset
+          Zuruecksetzen
         </button>
       </div>
     </div>

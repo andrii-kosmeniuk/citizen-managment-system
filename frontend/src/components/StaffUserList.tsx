@@ -6,7 +6,7 @@ interface Props {
 
 export function StaffUserList({ staffUsers }: Props) {
   if (staffUsers.length === 0) {
-    return <p data-testid="staff-list-empty">No workers found.</p>;
+    return <p data-testid="staff-list-empty">Keine Mitarbeiter gefunden.</p>;
   }
 
   return (
@@ -14,9 +14,9 @@ export function StaffUserList({ staffUsers }: Props) {
       <thead>
         <tr>
           <th>ID</th>
-          <th>First Name</th>
-          <th>Last Name</th>
-          <th>Is Active</th>
+          <th>Vorname</th>
+          <th>Nachname</th>
+          <th>Aktiv</th>
         </tr>
       </thead>
       <tbody>
@@ -25,7 +25,7 @@ export function StaffUserList({ staffUsers }: Props) {
             <td>{user.id}</td>
             <td>{user.first_name}</td>
             <td>{user.last_name}</td>
-            <td>{user.is_active ? "true" : "false"}</td>
+            <td>{user.is_active ? "Ja" : "Nein"}</td>
           </tr>
         ))}
       </tbody>

@@ -27,17 +27,17 @@ export function CommentBox({ role, onSubmit, disabled }: Props) {
           min={1}
           value={authorUserId}
           onChange={(e) => setAuthorUserId(Number(e.target.value))}
-          placeholder="Author User ID"
+          placeholder="Autor Mitarbeiter-ID"
         />
       )}
       <input
         data-testid="comment-text"
         value={commentText}
         onChange={(e) => setCommentText(e.target.value)}
-        placeholder="Add comment"
+        placeholder="Kommentar hinzufuegen"
       />
       <button data-testid="comment-submit" disabled={disabled} type="submit">
-        Add Comment
+        Kommentar hinzufuegen
       </button>
     </form>
   );

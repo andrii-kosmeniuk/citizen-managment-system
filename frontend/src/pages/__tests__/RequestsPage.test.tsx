@@ -108,7 +108,7 @@ beforeEach(() => {
 test("basic dashboard user flow works", async () => {
   render(<RequestsPage />);
 
-  await waitFor(() => expect(screen.getByText("Citizen Requests Dashboard")).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByText("Buergeranliegen-System")).toBeInTheDocument());
   await waitFor(() => expect(screen.getByTestId("request-row-1")).toBeInTheDocument());
 
   fireEvent.change(screen.getByTestId("create-title"), { target: { value: "Pothole" } });
@@ -132,7 +132,7 @@ test("basic dashboard user flow works", async () => {
   fireEvent.change(screen.getByTestId("status-next"), { target: { value: "CLOSED" } });
   fireEvent.click(screen.getByTestId("status-submit"));
 
-  await waitFor(() => expect(screen.getByTestId("request-detail")).toHaveTextContent("Status: CLOSED"));
+  await waitFor(() => expect(screen.getByTestId("request-detail")).toHaveTextContent("Status: Geschlossen"));
 
   expect(screen.getByTestId("claim-submit")).toBeDisabled();
   expect(screen.getByTestId("status-submit")).toBeDisabled();

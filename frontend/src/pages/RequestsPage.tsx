@@ -153,10 +153,10 @@ export function RequestsPage() {
 
   return (
     <main style={{ maxWidth: 1200, margin: "24px auto", fontFamily: "sans-serif", padding: "0 12px" }}>
-      <h1>Citizen Requests Dashboard</h1>
+      <h1>Buergeranliegen-System</h1>
       <div style={{ marginBottom: 12 }}>
         <label htmlFor="role-select">
-          Role:
+          Rolle:
           <select
             id="role-select"
             data-testid="role-select"
@@ -164,39 +164,39 @@ export function RequestsPage() {
             onChange={(e) => setActorRole(e.target.value as ActorRole)}
             style={{ marginLeft: 8 }}
           >
-            <option value="citizen">Citizen</option>
-            <option value="worker">Worker</option>
+            <option value="citizen">Buerger:in</option>
+            <option value="worker">Mitarbeiter:in</option>
           </select>
         </label>
       </div>
 
       {!isWorker ? (
         <form onSubmit={handleCreateRequest} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, marginBottom: 16 }}>
-          <h2>Create Request</h2>
+          <h2>Anliegen erstellen</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
             <input
               data-testid="create-title"
               value={createForm.title}
               onChange={(e) => setCreateForm((prev) => ({ ...prev, title: e.target.value }))}
-              placeholder="Title"
+              placeholder="Titel"
             />
             <input
               data-testid="create-citizen-first-name"
               value={createForm.citizen_first_name}
               onChange={(e) => setCreateForm((prev) => ({ ...prev, citizen_first_name: e.target.value }))}
-              placeholder="Citizen First Name"
+              placeholder="Vorname"
             />
             <input
               data-testid="create-citizen-last-name"
               value={createForm.citizen_last_name}
               onChange={(e) => setCreateForm((prev) => ({ ...prev, citizen_last_name: e.target.value }))}
-              placeholder="Citizen Last Name"
+              placeholder="Nachname"
             />
             <textarea
               data-testid="create-description"
               value={createForm.description}
               onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))}
-              placeholder="Description"
+              placeholder="Beschreibung"
             />
             <select
               data-testid="create-category"
@@ -221,7 +221,7 @@ export function RequestsPage() {
             </select>
           </div>
           <button data-testid="create-submit" style={{ marginTop: 10 }} type="submit" disabled={categories.length === 0}>
-            Create
+            Erstellen
           </button>
         </form>
       ) : (
@@ -229,36 +229,36 @@ export function RequestsPage() {
           data-testid="create-request-disabled"
           style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, marginBottom: 16 }}
         >
-          <h2>Create Request</h2>
-          <p>Only citizens can create new requests.</p>
+          <h2>Anliegen erstellen</h2>
+          <p>Nur Buerger:innen koennen neue Anliegen erfassen.</p>
         </section>
       )}
 
       {isWorker && (
         <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, marginBottom: 16 }}>
           <form data-testid="worker-category-form" onSubmit={handleCreateCategory}>
-            <h2>Worker: Add Category</h2>
+            <h2>Mitarbeiter: Kategorie hinzufuegen</h2>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <input
                 data-testid="worker-category-name"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder="Category name (e.g. Food)"
+                placeholder="Kategoriename (z.B. Essen)"
               />
               <input
                 data-testid="worker-category-description"
                 value={newCategoryDescription}
                 onChange={(e) => setNewCategoryDescription(e.target.value)}
-                placeholder="Category description (optional)"
+                placeholder="Kategoriebeschreibung (optional)"
               />
               <button data-testid="worker-category-submit" type="submit" disabled={!newCategoryName.trim()}>
-                Add Category
+                Kategorie hinzufuegen
               </button>
             </div>
           </form>
 
           <form data-testid="worker-category-delete-form" onSubmit={handleDeleteCategory} style={{ marginTop: 12 }}>
-            <h2>Worker: Delete Category</h2>
+            <h2>Mitarbeiter: Kategorie loeschen</h2>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <select
                 data-testid="worker-delete-category-select"
@@ -277,7 +277,7 @@ export function RequestsPage() {
                 type="submit"
                 disabled={categories.length === 0 || !deleteCategoryId}
               >
-                Delete Category
+                Kategorie loeschen
               </button>
             </div>
           </form>
@@ -296,16 +296,16 @@ export function RequestsPage() {
         }}
       />
 
-      {loading && <p>Loading...</p>}
+      {loading && <p>Laden...</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <section>
-          <h3>Requests</h3>
+          <h3>Anliegen</h3>
           <RequestList requests={requests} selectedRequestId={selectedRequestId} onSelect={setSelectedRequestId} />
           {isWorker && (
             <div style={{ marginTop: 16 }}>
-              <h3>Workers</h3>
+              <h3>Mitarbeiter</h3>
               <StaffUserList staffUsers={staffUsers} />
             </div>
           )}

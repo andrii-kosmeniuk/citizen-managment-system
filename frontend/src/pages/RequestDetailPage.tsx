@@ -11,6 +11,21 @@ interface Props {
   onDataChanged: () => Promise<void>;
 }
 
+const STATUS_LABELS: Record<RequestStatus, string> = {
+  NEW: "Neu",
+  IN_PROGRESS: "In Bearbeitung",
+  CLARIFICATION_NEEDED: "Rueckfrage",
+  RESOLVED: "Erledigt",
+  CLOSED: "Geschlossen",
+};
+
+const PRIORITY_LABELS: Record<"LOW" | "MEDIUM" | "HIGH" | "CRITICAL", string> = {
+  LOW: "Niedrig",
+  MEDIUM: "Mittel",
+  HIGH: "Hoch",
+  CRITICAL: "Kritisch",
+};
+
 export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props) {
   const [detail, setDetail] = useState<RequestDetailResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -39,11 +54,11 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
   }, [requestId, actorRole]);
 
   if (!requestId) {
-    return <p>Select a request to view details.</p>;
+    return <p>Waehlen Sie ein Anliegen aus, um Details zu sehen.</p>;
   }
 
   if (loading) {
-    return <p>Loading request detail...</p>;
+    return <p>Details werden geladen...</p>;
   }
 
   if (error) {
@@ -51,7 +66,7 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
   }
 
   if (!detail) {
-    return <p>No detail found.</p>;
+    return <p>Keine Details gefunden.</p>;
   }
 
   const isClosed = detail.request.status === "CLOSED";
@@ -98,19 +113,19 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
       </h2>
       <p>{detail.request.description}</p>
       <p>
-        <strong>Citizen:</strong> {detail.request.citizen_first_name} {detail.request.citizen_last_name}
+        <strong>Buerger:</strong> {detail.request.citizen_first_name} {detail.request.citizen_last_name}
       </p>
       <p>
-        <strong>Status:</strong> {detail.request.status}
+        <strong>Status:</strong> {STATUS_LABELS[detail.request.status]}
       </p>
       <p>
-        <strong>Priority:</strong> {detail.request.priority}
+        <strong>Prioritaet:</strong> {PRIORITY_LABELS[detail.request.priority]}
       </p>
       <p>
-        <strong>Assigned To:</strong>{" "}
+        <strong>Zugewiesen an:</strong>{" "}
         {detail.request.assigned_to_user_id
-          ? `${detail.request.assigned_to_user_id}(${detail.request.assigned_to_display_name ?? "Unknown Worker"})`
-          : "Unassigned"}
+          ? `${detail.request.assigned_to_user_id}(${detail.request.assigned_to_display_name ?? "Unbekannter Mitarbeiter"})`
+          : "Nicht zugewiesen"}
       </p>
 
       {isWorker && (
@@ -124,7 +139,7 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
               onChange={(e) => setClaimActorUserId(Number(e.target.value))}
             />
             <button data-testid="claim-submit" onClick={handleClaim} disabled={isClosed}>
-              Claim Request
+              Anliegen uebernehmen
             </button>
           </div>
 
@@ -133,29 +148,30 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
       )}
       <CommentBox role={actorRole} onSubmit={handleCommentSubmit} disabled={isClosed} />
 
-      <h3>Comments</h3>
+      <h3>Kommentare</h3>
       {detail.comments.length === 0 ? (
-        <p>No comments.</p>
+        <p>Keine Kommentare.</p>
       ) : (
         <ul>
           {detail.comments.map((comment) => (
             <li key={comment.id}>
               [{new Date(comment.created_at).toLocaleString()}] {comment.author_display_name}
-              ({comment.author_role === "CITIZEN" ? "Citizen" : "Worker"}): {comment.comment_text}
+              ({comment.author_role === "CITIZEN" ? "Buerger" : "Mitarbeiter"}): {comment.comment_text}
             </li>
           ))}
         </ul>
       )}
 
-      <h3>Status History</h3>
+      <h3>Statusverlauf</h3>
       {detail.status_history.length === 0 ? (
-        <p>No status history.</p>
+        <p>Kein Statusverlauf.</p>
       ) : (
         <ul>
           {detail.status_history.map((history) => (
             <li key={history.id}>
-              [{new Date(history.changed_at).toLocaleString()}] {history.from_status ?? "NONE"} -&gt; {history.to_status} (
-              {history.changed_by_user_id}, {history.changed_by_display_name ?? "Unknown Worker"})
+              [{new Date(history.changed_at).toLocaleString()}]{" "}
+              {(history.from_status && STATUS_LABELS[history.from_status]) || "KEINER"} -&gt; {STATUS_LABELS[history.to_status]} (
+              {history.changed_by_user_id}, {history.changed_by_display_name ?? "Unbekannter Mitarbeiter"})
               {history.change_note ? `: ${history.change_note}` : ""}
             </li>
           ))}

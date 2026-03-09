@@ -8,6 +8,13 @@ interface Props {
 }
 
 const STATUSES: RequestStatus[] = ["IN_PROGRESS", "CLARIFICATION_NEEDED", "RESOLVED", "CLOSED"];
+const STATUS_LABELS: Record<RequestStatus, string> = {
+  NEW: "Neu",
+  IN_PROGRESS: "In Bearbeitung",
+  CLARIFICATION_NEEDED: "Rueckfrage",
+  RESOLVED: "Erledigt",
+  CLOSED: "Geschlossen",
+};
 
 export function StatusChanger({ onSubmit, disabled }: Props) {
   const [actorUserId, setActorUserId] = useState(1);
@@ -29,12 +36,12 @@ export function StatusChanger({ onSubmit, disabled }: Props) {
         min={1}
         value={actorUserId}
         onChange={(e) => setActorUserId(Number(e.target.value))}
-        placeholder="Actor User ID"
+        placeholder="Mitarbeiter-ID"
       />
       <select data-testid="status-next" value={status} onChange={(e) => setStatus(e.target.value as RequestStatus)}>
         {STATUSES.map((nextStatus) => (
           <option key={nextStatus} value={nextStatus}>
-            {nextStatus}
+            {STATUS_LABELS[nextStatus]}
           </option>
         ))}
       </select>
@@ -42,10 +49,10 @@ export function StatusChanger({ onSubmit, disabled }: Props) {
         data-testid="status-note"
         value={changeNote}
         onChange={(e) => setChangeNote(e.target.value)}
-        placeholder="Change note"
+        placeholder="Aenderungsnotiz"
       />
       <button data-testid="status-submit" disabled={disabled} type="submit">
-        Update Status
+        Status aktualisieren
       </button>
     </form>
   );
