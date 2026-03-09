@@ -361,6 +361,8 @@ erDiagram
 - `docs/`: assessment artifacts (spec, architecture, AI usage)
 - `scripts/`: helper scripts
 
+Note: `RULES.md` contains the implementation plan and progress tracking used during development.
+
 ## 10) Important Design Decisions
 
 - Database structure: the first version worked, but it was not sufficient for long-term scalability. The schema was redesigned into a more scalable model where "Citizen" and "Worker" are derived from the "Person" entity.

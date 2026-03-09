@@ -361,6 +361,8 @@ erDiagram
 - `docs/`: Assessment-Artefakte (Spezifikation, Architektur, AI-Nutzung)
 - `scripts/`: Hilfsskripte
 
+Hinweis: `RULES.md` enthaelt den Implementierungsplan und die Fortschrittsdokumentation aus der Entwicklung.
+
 ## 10) Wichtige Designentscheidungen
 
 - Datenbankstruktur: Die erste Version hat funktioniert, war aber fuer langfristige Skalierbarkeit nicht ausreichend. Das Schema wurde in ein besser skalierbares Modell ueberfuehrt, in dem "Citizen" und "Worker" vom "Person"-Entity abgeleitet sind.
