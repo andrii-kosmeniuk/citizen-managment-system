@@ -300,6 +300,7 @@ export function RequestsPage() {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <section>
+          <h3>Requests</h3>
           <RequestList requests={requests} selectedRequestId={selectedRequestId} onSelect={setSelectedRequestId} />
           {isWorker && (
             <div style={{ marginTop: 16 }}>
