@@ -38,6 +38,17 @@ def _require_user(db: Session, user_id: int) -> StaffUser:
     return user
 
 
+def _resolve_creator(db: Session, creator_user_id: int | None) -> StaffUser:
+    if creator_user_id is not None:
+        return _require_user(db, creator_user_id)
+
+    fallback = db.scalar(select(StaffUser).where(StaffUser.is_active.is_(True)).order_by(StaffUser.id.asc()))
+    if fallback is None:
+        raise HTTPException(status_code=409, detail="No active staff user is available to register request creation")
+    ensure_staff_person(db, fallback)
+    return fallback
+
+
 def _require_request(db: Session, request_id: int) -> CitizenRequest:
     req = db.get(CitizenRequest, request_id)
     if not req:
@@ -72,8 +83,15 @@ def list_requests(
 
 
 @router.post("", response_model=RequestRead, status_code=status.HTTP_201_CREATED)
-def create_request(payload: RequestCreate, db: Session = Depends(get_db)) -> CitizenRequest:
-    creator = _require_user(db, payload.creator_user_id)
+def create_request(
+    payload: RequestCreate,
+    db: Session = Depends(get_db),
+    actor_role: ActorRole = Depends(get_actor_role),
+) -> CitizenRequest:
+    if actor_role != "citizen":
+        raise HTTPException(status_code=403, detail="Citizen role is required for this action")
+
+    creator = _resolve_creator(db, payload.creator_user_id)
     _require_category(db, payload.category_id)
 
     title = payload.title.strip()
@@ -104,14 +122,14 @@ def create_request(payload: RequestCreate, db: Session = Depends(get_db)) -> Cit
     )
     db.add(request)
     db.flush()
-    logger.info("request_created id=%s creator_user_id=%s", request.id, payload.creator_user_id)
+    logger.info("request_created id=%s creator_user_id=%s", request.id, creator.id)
 
     db.add(
         RequestStatusHistory(
             request_id=request.id,
             from_status=None,
             to_status=RequestStatus.NEW,
-            changed_by_user_id=payload.creator_user_id,
+            changed_by_user_id=creator.id,
             changed_by_person_id=creator.person_id,
             change_note="Initial status",
         )

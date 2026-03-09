@@ -7,7 +7,7 @@ from app.schemas.enums import RequestPriority, RequestStatus
 
 
 class RequestCreate(BaseModel):
-    creator_user_id: int
+    creator_user_id: int | None = None
     title: str
     description: str
     category_id: int

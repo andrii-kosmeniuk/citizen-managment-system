@@ -151,3 +151,13 @@ test("citizen role hides worker-only controls", async () => {
   expect(screen.queryByTestId("status-submit")).not.toBeInTheDocument();
   expect(screen.getByTestId("comment-submit")).toBeInTheDocument();
 });
+
+test("worker role cannot see create request form", async () => {
+  render(<RequestsPage />);
+  await waitFor(() => expect(screen.getByTestId("request-row-1")).toBeInTheDocument());
+
+  fireEvent.change(screen.getByTestId("role-select"), { target: { value: "worker" } });
+
+  await waitFor(() => expect(screen.getByTestId("create-request-disabled")).toBeInTheDocument());
+  expect(screen.queryByTestId("create-submit")).not.toBeInTheDocument();
+});

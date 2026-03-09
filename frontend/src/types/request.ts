@@ -53,7 +53,6 @@ export interface RequestDetailResponse {
 }
 
 export interface CreateRequestPayload {
-  creator_user_id: number;
   title: string;
   description: string;
   category_id: number;

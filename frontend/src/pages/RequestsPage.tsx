@@ -32,7 +32,6 @@ export function RequestsPage() {
   const [deleteCategoryId, setDeleteCategoryId] = useState(0);
 
   const [createForm, setCreateForm] = useState<CreateRequestPayload>({
-    creator_user_id: 1,
     title: "",
     description: "",
     category_id: 0,
@@ -171,67 +170,69 @@ export function RequestsPage() {
         </label>
       </div>
 
-      <form onSubmit={handleCreateRequest} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, marginBottom: 16 }}>
-        <h2>Create Request</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
-          <input
-            data-testid="create-creator-user-id"
-            type="number"
-            min={1}
-            value={createForm.creator_user_id}
-            onChange={(e) => setCreateForm((prev) => ({ ...prev, creator_user_id: Number(e.target.value) }))}
-            placeholder="Creator User ID"
-          />
-          <input
-            data-testid="create-title"
-            value={createForm.title}
-            onChange={(e) => setCreateForm((prev) => ({ ...prev, title: e.target.value }))}
-            placeholder="Title"
-          />
-          <input
-            data-testid="create-citizen-first-name"
-            value={createForm.citizen_first_name}
-            onChange={(e) => setCreateForm((prev) => ({ ...prev, citizen_first_name: e.target.value }))}
-            placeholder="Citizen First Name"
-          />
-          <input
-            data-testid="create-citizen-last-name"
-            value={createForm.citizen_last_name}
-            onChange={(e) => setCreateForm((prev) => ({ ...prev, citizen_last_name: e.target.value }))}
-            placeholder="Citizen Last Name"
-          />
-          <textarea
-            data-testid="create-description"
-            value={createForm.description}
-            onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))}
-            placeholder="Description"
-          />
-          <select
-            data-testid="create-category"
-            value={createForm.category_id}
-            onChange={(e) => setCreateForm((prev) => ({ ...prev, category_id: Number(e.target.value) }))}
-          >
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-          <select
-            data-testid="create-priority"
-            value={createForm.priority}
-            onChange={(e) => setCreateForm((prev) => ({ ...prev, priority: e.target.value as RequestPriority }))}
-          >
-            <option value="LOW">LOW</option>
-            <option value="MEDIUM">MEDIUM</option>
-            <option value="HIGH">HIGH</option>
-            <option value="CRITICAL">CRITICAL</option>
-          </select>
-        </div>
-        <button data-testid="create-submit" style={{ marginTop: 10 }} type="submit" disabled={categories.length === 0}>
-          Create
-        </button>
-      </form>
+      {!isWorker ? (
+        <form onSubmit={handleCreateRequest} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, marginBottom: 16 }}>
+          <h2>Create Request</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+            <input
+              data-testid="create-title"
+              value={createForm.title}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, title: e.target.value }))}
+              placeholder="Title"
+            />
+            <input
+              data-testid="create-citizen-first-name"
+              value={createForm.citizen_first_name}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, citizen_first_name: e.target.value }))}
+              placeholder="Citizen First Name"
+            />
+            <input
+              data-testid="create-citizen-last-name"
+              value={createForm.citizen_last_name}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, citizen_last_name: e.target.value }))}
+              placeholder="Citizen Last Name"
+            />
+            <textarea
+              data-testid="create-description"
+              value={createForm.description}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))}
+              placeholder="Description"
+            />
+            <select
+              data-testid="create-category"
+              value={createForm.category_id}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, category_id: Number(e.target.value) }))}
+            >
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+            <select
+              data-testid="create-priority"
+              value={createForm.priority}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, priority: e.target.value as RequestPriority }))}
+            >
+              <option value="LOW">LOW</option>
+              <option value="MEDIUM">MEDIUM</option>
+              <option value="HIGH">HIGH</option>
+              <option value="CRITICAL">CRITICAL</option>
+            </select>
+          </div>
+          <button data-testid="create-submit" style={{ marginTop: 10 }} type="submit" disabled={categories.length === 0}>
+            Create
+          </button>
+        </form>
+      ) : (
+        <section
+          data-testid="create-request-disabled"
+          style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, marginBottom: 16 }}
+        >
+          <h2>Create Request</h2>
+          <p>Only citizens can create new requests.</p>
+        </section>
+      )}
 
       {isWorker && (
         <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, marginBottom: 16 }}>
