@@ -1,14 +1,14 @@
 # Citizen Request Management System
 
-##  1) Problem identification
+## 1) Problem Identification
 
-This project is designed to manage citizen requests and to resolve them faster. 
+This project is designed to manage citizen requests and resolve them faster.
 
-There are 2 main roles "Citizen" and "Worker":
- - "Citizen" can open requests and ask for help, as well as write comments about the problem.
- - "Worker" can see citizen requests, assign them to each other, update request status, add comments for the requests.
+There are two main roles: "Citizen" and "Worker":
+- "Citizen" can open requests, ask for help, and write comments about the problem.
+- "Worker" can view citizen requests, assign requests, update request status, and add comments.
 
-The idea of a project is to understand how to design clean project architecture and easily scalable database system with integration of backend and simple UI. 
+The goal of this project is to demonstrate a clean project architecture and a scalable database system with backend and simple UI integration.
 
 ## 2) Quick Start (Docker)
 
@@ -82,7 +82,7 @@ SELECT * FROM citizen_request;
 
 ## 4) Full stack without Docker
 
-###  4.1) Run backend
+### 4.1) Run Backend
 
 ```bash
 cd backend
@@ -93,7 +93,7 @@ export DATABASE_URL="postgresql+psycopg://postgres:postgres@localhost:5432/citiz
 uvicorn app.main:app --reload --port 8000
 ```
 
-### 4.2) Run frontend
+### 4.2) Run Frontend
 
 ```bash
 cd frontend
@@ -101,7 +101,7 @@ npm install
 npm run dev
 ```
 
-### API examples
+### API Examples
 - `GET /health`
 - `GET /categories`
 - `POST /categories`
@@ -165,7 +165,7 @@ This repository now includes:
 
 You can see pushed images in GitHub: `Packages` tab of the repository/account.
 
-##  6) Assumptions
+## 6) Assumptions
 
 - The system uses two operational roles only: "Citizen" and "Worker".
 - Authentication is out of scope for this version; role selection is simulated in the UI.
@@ -173,13 +173,13 @@ You can see pushed images in GitHub: `Packages` tab of the repository/account.
 - Request lifecycle is strictly controlled by predefined status-transition rules.
 - Data traceability is required: comments and status history are stored as audit records.
 
-##  7) Business View
+## 7) Business View
 
-### Business actors
+### Business Actors
 - Citizen
 - Worker
 
-### Business relationships
+### Business Relationships
 - One citizen can create many requests.
 - One worker can handle many requests.
 - One category can contain many requests.
@@ -320,14 +320,14 @@ erDiagram
     PERSON ||--o{ REQUEST_STATUS_HISTORY : "changed_by"
 ```
 
-### Request lifecycle (business process)
+### Request Lifecycle (Business Process)
 - NEW -> IN_PROGRESS or CLARIFICATION_NEEDED
 - IN_PROGRESS -> CLARIFICATION_NEEDED or RESOLVED
 - CLARIFICATION_NEEDED -> IN_PROGRESS
 - RESOLVED -> CLOSED
-- CLOSED is terminal (no further lifecycle transitions)
+- CLOSED is terminal (no further lifecycle transitions).
 
-### Business rules
+### Business Rules
 - Every request must have exactly one current status.
 - Invalid status transitions are rejected.
 - Every accepted status change must be written to status history.
@@ -336,12 +336,12 @@ erDiagram
   - Worker: all citizen capabilities plus claim request, update status, manage categories.
 - Historical records (comments, status history) are retained for traceability.
 
-##  8) Use Cases
+## 8) Use Cases
 
-- This system can be efficiently used for property managers to quickly identify problems, that people face when living in specific house.
-- This can be used by government to give specific instructions for municipal sanitation workers. Easier to understand problems and weaknesses through people feedback.
+- This system can be used by property managers to quickly identify problems people face while living in a specific building.
+- This system can also be used by government agencies to provide instructions for municipal sanitation workers and better understand local issues through citizen feedback.
 
-##  9) Architecture Overview
+## 9) Architecture Overview
 
 ### Layers
 - Frontend: React + Vite
@@ -363,12 +363,12 @@ erDiagram
 
 ## 10) Important Design Decisions
 
-- Databse structure. First version was good but if we are thinking about scalability then it wasn't enough. Due to this problem the database structure was rewriten into more scalable where "Citizen" and "Worker" will be inherited from "Person" entity. 
-- Clear separation between backend, frontend and database. This gave project a better structure and file searching system.
+- Database structure: the first version worked, but it was not sufficient for long-term scalability. The schema was redesigned into a more scalable model where "Citizen" and "Worker" are derived from the "Person" entity.
+- Clear separation between backend, frontend, and database: this provides a cleaner project structure and easier file navigation.
 
-## 11) Suggetions & Alternatives
+## 11) Suggestions & Alternatives
 
-- Instead of changing roles above from the dropdown menu, it is better to implement authentication system with email and password for higher security.
-- UI/UX can be better implemented and in more vibrant way to provide better experience for the user.
-- One more role as administration can be added to track that workers will implement correctly all the tasks
-- Person can have multiple roles later, database structure is already prepared for this
+- Instead of selecting roles from a dropdown, an authentication system with email and password should be implemented for stronger security.
+- UI/UX can be improved and made more engaging to provide a better user experience.
+- An additional admin role can be introduced to supervise task execution and manage workers.
+- A person can have multiple roles later; the database structure is already prepared for this.
