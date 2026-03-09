@@ -52,7 +52,7 @@ Reset DB (optional, clean state):
 ```
 
 
-## 3) Database only (simple)
+## 3) Database only
 
 ### 3.1) Start only DB
 
@@ -189,135 +189,135 @@ You can see pushed images in GitHub: `Packages` tab of the repository/account.
 ```mermaid
 erDiagram
     PERSON {
-        BIGSERIAL id PK
-        VARCHAR first_name
-        VARCHAR last_name
-        VARCHAR email
-        VARCHAR phone
-        BOOLEAN is_active
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
+        bigint id PK
+        string first_name
+        string last_name
+        string email
+        string phone
+        boolean is_active
+        datetime created_at
+        datetime updated_at
     }
 
     CITIZEN_PROFILE {
-        BIGSERIAL id PK
-        BIGINT person_id FK
-        VARCHAR preferred_contact_method
-        VARCHAR address_line
-        VARCHAR district
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
+        bigint id PK
+        bigint person_id FK
+        string preferred_contact_method
+        string address_line
+        string district
+        datetime created_at
+        datetime updated_at
     }
 
     STAFF_PROFILE {
-        BIGSERIAL id PK
-        BIGINT person_id FK
-        VARCHAR employee_code
-        VARCHAR department
-        VARCHAR position_title
-        BOOLEAN is_available
-        BIGINT legacy_staff_user_id FK
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
+        bigint id PK
+        bigint person_id FK
+        string employee_code
+        string department
+        string position_title
+        boolean is_available
+        bigint legacy_staff_user_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     ROLE {
-        BIGSERIAL id PK
-        VARCHAR code
-        VARCHAR description
-        BOOLEAN is_active
-        TIMESTAMPTZ created_at
+        bigint id PK
+        string code
+        string description
+        boolean is_active
+        datetime created_at
     }
 
     PERSON_ROLE {
-        BIGSERIAL id PK
-        BIGINT person_id FK
-        BIGINT role_id FK
-        TIMESTAMPTZ assigned_at
+        bigint id PK
+        bigint person_id FK
+        bigint role_id FK
+        datetime assigned_at
     }
 
     STAFF_USER {
-        BIGSERIAL id PK
-        VARCHAR first_name
-        VARCHAR last_name
-        VARCHAR email
-        BOOLEAN is_active
-        BIGINT person_id FK
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
+        bigint id PK
+        string first_name
+        string last_name
+        string email
+        boolean is_active
+        bigint person_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     CATEGORY {
-        BIGSERIAL id PK
-        VARCHAR name
-        VARCHAR description
-        BOOLEAN is_active
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
+        bigint id PK
+        string name
+        string description
+        boolean is_active
+        datetime created_at
+        datetime updated_at
     }
 
     CITIZEN_REQUEST {
-        BIGSERIAL id PK
-        VARCHAR title
-        TEXT description
-        BIGINT category_id FK
-        request_priority priority
-        request_status status
-        VARCHAR citizen_first_name
-        VARCHAR citizen_last_name
-        BIGINT assigned_to_user_id FK
-        BIGINT citizen_person_id FK
-        BIGINT created_by_person_id FK
-        BIGINT assigned_to_person_id FK
-        TIMESTAMPTZ resolved_at
-        TIMESTAMPTZ closed_at
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
+        bigint id PK
+        string title
+        string description
+        bigint category_id FK
+        string priority
+        string status
+        string citizen_first_name
+        string citizen_last_name
+        bigint assigned_to_user_id FK
+        bigint citizen_person_id FK
+        bigint created_by_person_id FK
+        bigint assigned_to_person_id FK
+        datetime resolved_at
+        datetime closed_at
+        datetime created_at
+        datetime updated_at
     }
 
     REQUEST_COMMENT {
-        BIGSERIAL id PK
-        BIGINT request_id FK
-        BIGINT author_user_id FK
-        BIGINT author_person_id FK
-        VARCHAR author_role
-        VARCHAR author_display_name
-        TEXT comment_text
-        TIMESTAMPTZ created_at
+        bigint id PK
+        bigint request_id FK
+        bigint author_user_id FK
+        bigint author_person_id FK
+        string author_role
+        string author_display_name
+        string comment_text
+        datetime created_at
     }
 
     REQUEST_STATUS_HISTORY {
-        BIGSERIAL id PK
-        BIGINT request_id FK
-        request_status from_status
-        request_status to_status
-        BIGINT changed_by_user_id FK
-        BIGINT changed_by_person_id FK
-        VARCHAR change_note
-        TIMESTAMPTZ changed_at
+        bigint id PK
+        bigint request_id FK
+        string from_status
+        string to_status
+        bigint changed_by_user_id FK
+        bigint changed_by_person_id FK
+        string change_note
+        datetime changed_at
     }
 
-    PERSON ||--o| CITIZEN_PROFILE : has
-    PERSON ||--o| STAFF_PROFILE : has
-    PERSON ||--o{ PERSON_ROLE : gets
-    ROLE ||--o{ PERSON_ROLE : assigned
+    PERSON ||--o{ CITIZEN_PROFILE : "has"
+    PERSON ||--o{ STAFF_PROFILE : "has"
+    PERSON ||--o{ PERSON_ROLE : "maps"
+    ROLE ||--o{ PERSON_ROLE : "maps"
 
-    PERSON ||--o{ STAFF_USER : linked_legacy
-    STAFF_USER ||--o| STAFF_PROFILE : mapped_by_legacy_id
+    PERSON ||--o{ STAFF_USER : "linked"
+    STAFF_USER ||--o{ STAFF_PROFILE : "legacy_link"
 
-    CATEGORY ||--o{ CITIZEN_REQUEST : classifies
-    STAFF_USER ||--o{ CITIZEN_REQUEST : assigned_legacy
-    PERSON ||--o{ CITIZEN_REQUEST : citizen_person
-    PERSON ||--o{ CITIZEN_REQUEST : created_by
-    PERSON ||--o{ CITIZEN_REQUEST : assigned_to
+    CATEGORY ||--o{ CITIZEN_REQUEST : "contains"
+    STAFF_USER ||--o{ CITIZEN_REQUEST : "assigned_legacy"
+    PERSON ||--o{ CITIZEN_REQUEST : "citizen"
+    PERSON ||--o{ CITIZEN_REQUEST : "created_by"
+    PERSON ||--o{ CITIZEN_REQUEST : "assigned_to"
 
-    CITIZEN_REQUEST ||--o{ REQUEST_COMMENT : has
-    STAFF_USER ||--o{ REQUEST_COMMENT : author_legacy
-    PERSON ||--o{ REQUEST_COMMENT : author_person
+    CITIZEN_REQUEST ||--o{ REQUEST_COMMENT : "has"
+    STAFF_USER ||--o{ REQUEST_COMMENT : "author_legacy"
+    PERSON ||--o{ REQUEST_COMMENT : "author"
 
-    CITIZEN_REQUEST ||--o{ REQUEST_STATUS_HISTORY : tracks
-    STAFF_USER ||--o{ REQUEST_STATUS_HISTORY : changed_by_legacy
-    PERSON ||--o{ REQUEST_STATUS_HISTORY : changed_by_person
+    CITIZEN_REQUEST ||--o{ REQUEST_STATUS_HISTORY : "has"
+    STAFF_USER ||--o{ REQUEST_STATUS_HISTORY : "changed_legacy"
+    PERSON ||--o{ REQUEST_STATUS_HISTORY : "changed_by"
 ```
 
 ### Request lifecycle (business process)
