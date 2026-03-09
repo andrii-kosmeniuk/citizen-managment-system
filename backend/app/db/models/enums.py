@@ -10,7 +10,7 @@ class RequestStatus(str, enum.Enum):
 
 
 class RequestPriority(str, enum.Enum):
-    LOW = "LOW"
-    MEDIUM = "MEDIUM"
-    HIGH = "HIGH"
-    CRITICAL = "CRITICAL"
+    NIEDRIG = "NIEDRIG"
+    MITTEL = "MITTEL"
+    HOCH = "HOCH"
+    KRITISCH = "KRITISCH"

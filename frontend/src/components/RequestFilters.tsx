@@ -16,7 +16,7 @@ interface Props {
 }
 
 const STATUSES: RequestStatus[] = ["NEW", "IN_PROGRESS", "CLARIFICATION_NEEDED", "RESOLVED", "CLOSED"];
-const PRIORITIES: RequestPriority[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+const PRIORITIES: RequestPriority[] = ["NIEDRIG", "MITTEL", "HOCH", "KRITISCH"];
 const STATUS_LABELS: Record<RequestStatus, string> = {
   NEW: "Neu",
   IN_PROGRESS: "In Bearbeitung",
@@ -25,10 +25,10 @@ const STATUS_LABELS: Record<RequestStatus, string> = {
   CLOSED: "Geschlossen",
 };
 const PRIORITY_LABELS: Record<RequestPriority, string> = {
-  LOW: "Niedrig",
-  MEDIUM: "Mittel",
-  HIGH: "Hoch",
-  CRITICAL: "Kritisch",
+  NIEDRIG: "NIEDRIG",
+  MITTEL: "MITTEL",
+  HOCH: "HOCH",
+  KRITISCH: "KRITISCH",
 };
 
 export function RequestFilters({ categories, value, onChange, onApply, onReset }: Props) {

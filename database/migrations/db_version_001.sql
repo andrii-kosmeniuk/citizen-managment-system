@@ -12,10 +12,10 @@ CREATE TYPE request_status AS ENUM (
 );
 
 CREATE TYPE request_priority AS ENUM (
-  'LOW',
-  'MEDIUM',
-  'HIGH',
-  'CRITICAL'
+  'NIEDRIG',
+  'MITTEL',
+  'HOCH',
+  'KRITISCH'
 );
 
 CREATE TABLE staff_user (
@@ -45,10 +45,10 @@ CREATE TABLE category (
 
 INSERT INTO category (name, description, is_active)
 VALUES
-  ('Infrastructure', 'Roads, lights, public facilities maintenance issues.', TRUE),
-  ('Environment', 'Waste, pollution, parks, and environmental concerns.', TRUE),
-  ('Traffic', 'Road signs, traffic lights, parking, and traffic flow issues.', TRUE),
-  ('Other', 'General requests that do not match predefined categories.', TRUE);
+  ('Infrastructur', 'Roads, lights, public facilities maintenance issues.', TRUE),
+  ('Umwelt', 'Waste, pollution, parks, and environmental concerns.', TRUE),
+  ('Verkehr', 'Road signs, traffic lights, parking, and traffic flow issues.', TRUE),
+  ('Sonstiges', 'General requests that do not match predefined categories.', TRUE);
 
 CREATE TABLE citizen_request (
   id                   BIGSERIAL PRIMARY KEY,

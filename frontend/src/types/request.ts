@@ -5,7 +5,7 @@ export type RequestStatus =
   | "RESOLVED"
   | "CLOSED";
 
-export type RequestPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type RequestPriority = "NIEDRIG" | "MITTEL" | "HOCH" | "KRITISCH";
 export type ActorRole = "citizen" | "worker";
 
 export interface CitizenRequest {

@@ -35,7 +35,7 @@ export function RequestsPage() {
     title: "",
     description: "",
     category_id: 0,
-    priority: "MEDIUM",
+    priority: "MITTEL",
     citizen_first_name: "",
     citizen_last_name: "",
   });
@@ -214,10 +214,10 @@ export function RequestsPage() {
               value={createForm.priority}
               onChange={(e) => setCreateForm((prev) => ({ ...prev, priority: e.target.value as RequestPriority }))}
             >
-              <option value="LOW">LOW</option>
-              <option value="MEDIUM">MEDIUM</option>
-              <option value="HIGH">HIGH</option>
-              <option value="CRITICAL">CRITICAL</option>
+              <option value="NIEDRIG">NIEDRIG</option>
+              <option value="MITTEL">MITTEL</option>
+              <option value="HOCH">HOCH</option>
+              <option value="KRITISCH">KRITISCH</option>
             </select>
           </div>
           <button data-testid="create-submit" style={{ marginTop: 10 }} type="submit" disabled={categories.length === 0}>

@@ -63,7 +63,7 @@ ON CONFLICT (person_id, role_id) DO NOTHING;
 -- Ensure core categories are active
 UPDATE category
 SET is_active = TRUE
-WHERE name IN ('Infrastructure', 'Environment', 'Traffic', 'Other');
+WHERE name IN ('Infrastructur', 'Umwelt', 'Verkehr', 'Sonstiges');
 
 -- Citizen people
 INSERT INTO person (first_name, last_name, email, is_active)
@@ -85,7 +85,7 @@ JOIN role r ON r.code = 'CITIZEN'
 WHERE (p.first_name, p.last_name) IN (('Anna', 'Mueller'), ('Peter', 'Schmidt'))
 ON CONFLICT (person_id, role_id) DO NOTHING;
 
--- Request 1 (Infrastructure, NEW)
+-- Request 1 (Infrastructur, NEW)
 INSERT INTO citizen_request (
   title,
   description,
@@ -103,7 +103,7 @@ SELECT
   'Broken street light',
   'Street light is not working near house number 24.',
   c.id,
-  'HIGH',
+  'HOCH',
   'NEW',
   cp.first_name,
   cp.last_name,
@@ -115,7 +115,7 @@ FROM category c
 JOIN person cp ON cp.first_name = 'Anna' AND cp.last_name = 'Mueller'
 JOIN person wp ON wp.email = 'mia.schneider@city.example'
 JOIN staff_user su ON su.email = 'mia.schneider@city.example'
-WHERE c.name = 'Infrastructure'
+WHERE c.name = 'Infrastructur'
   AND NOT EXISTS (
     SELECT 1 FROM citizen_request r WHERE r.title = 'Broken street light'
   );
@@ -146,7 +146,7 @@ WHERE r.title = 'Broken street light'
       AND h.to_status = 'NEW'
   );
 
--- Request 2 (Traffic, IN_PROGRESS)
+-- Request 2 (Verkehr, IN_PROGRESS)
 INSERT INTO citizen_request (
   title,
   description,
@@ -164,7 +164,7 @@ SELECT
   'Traffic light timing issue',
   'Red light is too short at the central junction.',
   c.id,
-  'MEDIUM',
+  'MITTEL',
   'IN_PROGRESS',
   cp.first_name,
   cp.last_name,
@@ -176,7 +176,7 @@ FROM category c
 JOIN person cp ON cp.first_name = 'Peter' AND cp.last_name = 'Schmidt'
 JOIN person wp ON wp.email = 'lukas.weber@city.example'
 JOIN staff_user su ON su.email = 'lukas.weber@city.example'
-WHERE c.name = 'Traffic'
+WHERE c.name = 'Verkehr'
   AND NOT EXISTS (
     SELECT 1 FROM citizen_request r WHERE r.title = 'Traffic light timing issue'
   );

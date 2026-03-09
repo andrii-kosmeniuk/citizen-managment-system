@@ -8,7 +8,7 @@ const requests = [
     title: "Broken lamp",
     description: "desc",
     category_id: 1,
-    priority: "HIGH" as const,
+    priority: "HOCH" as const,
     status: "NEW" as const,
     citizen_first_name: "Jane",
     citizen_last_name: "Citizen",

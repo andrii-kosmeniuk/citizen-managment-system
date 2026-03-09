@@ -16,10 +16,10 @@ const STATUS_LABELS: Record<RequestStatus, string> = {
 };
 
 const PRIORITY_LABELS: Record<RequestPriority, string> = {
-  LOW: "Niedrig",
-  MEDIUM: "Mittel",
-  HIGH: "Hoch",
-  CRITICAL: "Kritisch",
+  NIEDRIG: "NIEDRIG",
+  MITTEL: "MITTEL",
+  HOCH: "HOCH",
+  KRITISCH: "KRITISCH",
 };
 
 export function RequestList({ requests, selectedRequestId, onSelect }: Props) {

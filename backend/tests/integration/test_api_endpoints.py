@@ -39,7 +39,7 @@ def test_categories_crud_and_active_filter(client):
     list_initial = client.get("/categories")
     assert list_initial.status_code == 200
     initial_names = {item["name"] for item in list_initial.json()}
-    assert initial_names == {"Infrastructure", "Environment", "Traffic", "Other"}
+    assert initial_names == {"Infrastructur", "Umwelt", "Verkehr", "Sonstiges"}
 
     created = client.post(
         "/categories",
@@ -52,7 +52,7 @@ def test_categories_crud_and_active_filter(client):
     duplicate = client.post("/categories", json={"name": "Noise   "}, headers=WORKER_HEADERS)
     assert duplicate.status_code == 409
 
-    category_id = next(item["id"] for item in list_initial.json() if item["name"] == "Infrastructure")
+    category_id = next(item["id"] for item in list_initial.json() if item["name"] == "Infrastructur")
     updated = client.patch(
         f"/categories/{category_id}",
         json={"description": "Roads and lighting"},
@@ -76,7 +76,7 @@ def test_requests_end_to_end_all_actions(client, db_session):
 
     categories = client.get("/categories")
     assert categories.status_code == 200
-    category_id = next(item["id"] for item in categories.json() if item["name"] == "Traffic")
+    category_id = next(item["id"] for item in categories.json() if item["name"] == "Verkehr")
 
     created = client.post(
         "/requests",
@@ -85,7 +85,7 @@ def test_requests_end_to_end_all_actions(client, db_session):
             "title": "Damaged sign",
             "description": "Stop sign damaged",
             "category_id": category_id,
-            "priority": "HIGH",
+            "priority": "HOCH",
             "citizen_first_name": "Jane",
             "citizen_last_name": "Citizen",
         },
@@ -98,7 +98,7 @@ def test_requests_end_to_end_all_actions(client, db_session):
     assert list_all.status_code == 200
     assert any(item["id"] == request_id for item in list_all.json())
 
-    list_filtered = client.get("/requests", params={"status": "NEW", "category_id": category_id, "priority": "HIGH"})
+    list_filtered = client.get("/requests", params={"status": "NEW", "category_id": category_id, "priority": "HOCH"})
     assert list_filtered.status_code == 200
     assert any(item["id"] == request_id for item in list_filtered.json())
 
@@ -164,7 +164,7 @@ def test_requests_invalid_transition_returns_409(client, db_session):
     creator = _create_staff(db_session, "creator2@example.com", "Create", "Two")
     categories = client.get("/categories")
     assert categories.status_code == 200
-    category_id = next(item["id"] for item in categories.json() if item["name"] == "Environment")
+    category_id = next(item["id"] for item in categories.json() if item["name"] == "Umwelt")
 
     created = client.post(
         "/requests",
@@ -173,7 +173,7 @@ def test_requests_invalid_transition_returns_409(client, db_session):
             "title": "Garbage dump",
             "description": "Illegal garbage in park",
             "category_id": category_id,
-            "priority": "MEDIUM",
+            "priority": "MITTEL",
             "citizen_first_name": "Gary",
             "citizen_last_name": "Citizen",
         },
@@ -203,7 +203,7 @@ def test_validation_and_not_found_errors(client, db_session):
             "title": "x",
             "description": "y",
             "category_id": 1,
-            "priority": "LOW",
+            "priority": "NIEDRIG",
             "citizen_first_name": "Missing",
             "citizen_last_name": "User",
         },
@@ -212,7 +212,7 @@ def test_validation_and_not_found_errors(client, db_session):
 
     categories = client.get("/categories")
     assert categories.status_code == 200
-    category_id = next(item["id"] for item in categories.json() if item["name"] == "Other")
+    category_id = next(item["id"] for item in categories.json() if item["name"] == "Sonstiges")
 
     bad_request = client.post(
         "/requests",
@@ -221,7 +221,7 @@ def test_validation_and_not_found_errors(client, db_session):
             "title": "   ",
             "description": "desc",
             "category_id": category_id,
-            "priority": "LOW",
+            "priority": "NIEDRIG",
             "citizen_first_name": "Blank",
             "citizen_last_name": "Title",
         },
@@ -238,7 +238,7 @@ def test_validation_and_not_found_errors(client, db_session):
             "title": "Open request",
             "description": "Open for validation",
             "category_id": category_id,
-            "priority": "LOW",
+            "priority": "NIEDRIG",
             "citizen_first_name": "Open",
             "citizen_last_name": "Citizen",
         },
@@ -261,7 +261,7 @@ def test_status_history_written_for_each_change(db_session):
 def test_citizen_cannot_access_worker_actions(client, db_session):
     creator = _create_staff(db_session, "creator4@example.com", "Create", "Four")
     actor = _create_staff(db_session, "actor4@example.com", "Actor", "Four")
-    category_id = next(item["id"] for item in client.get("/categories").json() if item["name"] == "Traffic")
+    category_id = next(item["id"] for item in client.get("/categories").json() if item["name"] == "Verkehr")
 
     created = client.post(
         "/requests",
@@ -270,7 +270,7 @@ def test_citizen_cannot_access_worker_actions(client, db_session):
             "title": "Blocked lane",
             "description": "Construction blocks one lane",
             "category_id": category_id,
-            "priority": "MEDIUM",
+            "priority": "MITTEL",
             "citizen_first_name": "Tim",
             "citizen_last_name": "Tester",
         },
@@ -295,7 +295,7 @@ def test_citizen_cannot_access_worker_actions(client, db_session):
 
     category_forbidden = client.post(
         "/categories",
-        json={"name": "Traffic", "description": "Will be rejected because role"},
+        json={"name": "Verkehr", "description": "Will be rejected because role"},
         headers=CITIZEN_HEADERS,
     )
     assert category_forbidden.status_code == 403

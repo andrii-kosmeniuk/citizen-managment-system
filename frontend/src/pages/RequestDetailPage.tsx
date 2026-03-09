@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { addRequestComment, claimRequest, fetchRequestDetail, updateRequestStatus } from "../api/client";
 import { CommentBox } from "../components/CommentBox";
 import { StatusChanger } from "../components/StatusChanger";
-import type { ActorRole, RequestDetailResponse, RequestStatus } from "../types/request";
+import type { ActorRole, RequestDetailResponse, RequestPriority, RequestStatus } from "../types/request";
 
 interface Props {
   actorRole: ActorRole;
@@ -19,11 +19,11 @@ const STATUS_LABELS: Record<RequestStatus, string> = {
   CLOSED: "Geschlossen",
 };
 
-const PRIORITY_LABELS: Record<"LOW" | "MEDIUM" | "HIGH" | "CRITICAL", string> = {
-  LOW: "Niedrig",
-  MEDIUM: "Mittel",
-  HIGH: "Hoch",
-  CRITICAL: "Kritisch",
+const PRIORITY_LABELS: Record<RequestPriority, string> = {
+  NIEDRIG: "NIEDRIG",
+  MITTEL: "MITTEL",
+  HOCH: "HOCH",
+  KRITISCH: "KRITISCH",
 };
 
 export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props) {
