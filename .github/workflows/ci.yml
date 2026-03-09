@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  backend-and-frontend:
+  backend:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -41,12 +41,17 @@ jobs:
           . .venv/bin/activate
           pip install -e .[dev]
 
-      - name: Backend checks
+      - name: Backend static analysis + tests
         run: |
           cd backend
           . .venv/bin/activate
           ruff check app tests
           pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -60,9 +65,23 @@ jobs:
           cd frontend
           npm ci
 
-      - name: Frontend checks
+      - name: Frontend static analysis + tests
         run: |
           cd frontend
           npm run lint
           npm run test
           npm run build
+
+  security-trivy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy filesystem scan (HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"

@@ -1,5 +1,13 @@
 # Citizen Request Management System
 
+## Project description
+
+This project is designed to manage citizen requests and to resolve them faster. There are 2 main roles "Citizen" and "Worker":
+ - "Citizen" can open requests and ask for help, as well as write comments about the problem.
+ - "Worker" can see citizen requests, assign them to each other, update request status, add comments for the requests.
+
+The idea of a project is to understand how to design clean project architecture and easily scalable database system with integration of backend and simple UI. 
+
 ## Project structure
 - `backend/`: FastAPI REST API + business logic
 - `frontend/`: React app scaffold
@@ -100,3 +108,41 @@ Optional security scan (if `trivy` is installed):
 ```bash
 ./scripts/security_scan.sh
 ```
+
+## Static Analysis + Security + CI/CD (GitHub)
+
+This repository now includes:
+- Static code analysis in CI:
+  - Backend: `ruff` + tests
+  - Frontend: typecheck/lint + tests + build
+- Security scan in CI:
+  - `trivy` filesystem scan on `HIGH,CRITICAL`
+- CD pipeline:
+  - After CI succeeds on `main`, Docker images are built and pushed to `ghcr.io`
+
+### CI files
+- `.github/workflows/ci.yml`
+- `.github/workflows/cd.yml`
+
+### How to enable on GitHub
+1. Push repository to GitHub.
+2. In GitHub repo settings, enable Actions.
+3. Protect `main` branch and require `CI` workflow checks before merge.
+4. For CD image publishing, ensure workflow has permission to write packages (already set in workflow).
+
+### What CD publishes
+- `ghcr.io/<owner>/<repo>-backend:latest`
+- `ghcr.io/<owner>/<repo>-frontend:latest`
+
+You can see pushed images in GitHub: `Packages` tab of the repository/account.
+
+## 5) Important Design Decisions
+
+- Databse structure. First version was good but if we are thinking about scalability then it wasn't enough. Due to this problem the database structure was rewriten into more scalable where "Citizen" and "Worker" will be inherited from "Person" entity. 
+- Clear separation between backend, frontend and database. This gave project a better structure and file searching system.
+
+## 6) Suggetions & Alternatives
+
+- Instead of changing roles above from the dropdown menu, it is better to implement authentication system with email and password for higher security.
+- UI/UX can be better implemented and in more vibrant way to provide better experience for the user.
+- 
