@@ -31,7 +31,7 @@ for file in $(find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name '*.sql' | sort); 
   fi
 
   # Bootstrap legacy DB volumes where schema exists but schema_migrations table did not.
-  if [ "$filename" = "001_initial_schema.sql" ]; then
+  if [ "$filename" = "db_version_001.sql" ]; then
     has_core="$($PSQL -Atc "SELECT (to_regclass('public.citizen_request') IS NOT NULL AND to_regtype('public.request_status') IS NOT NULL);")"
     if [ "$has_core" = "t" ]; then
       echo "Detected existing core schema; marking ${filename} as applied."
@@ -40,7 +40,7 @@ for file in $(find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name '*.sql' | sort); 
     fi
   fi
 
-  if [ "$filename" = "002_phase6_identity_refactor.sql" ]; then
+  if [ "$filename" = "db_version_002.sql" ]; then
     has_identity="$($PSQL -Atc "SELECT (to_regclass('public.person') IS NOT NULL AND to_regclass('public.role') IS NOT NULL);")"
     if [ "$has_identity" = "t" ]; then
       echo "Detected existing identity schema; marking ${filename} as applied."
