@@ -8,6 +8,8 @@ vi.mock("../../api/client", () => {
   let currentStatus = "NEW";
   let currentCitizenFirstName: string | null = "Jane";
   let currentCitizenLastName: string | null = "Citizen";
+  let currentAssignedStaffProfileId: number | null = null;
+  let currentAssignedDisplayName: string | null = null;
   let comments: RequestCommentItem[] = [
     {
       id: 1,
@@ -46,7 +48,8 @@ vi.mock("../../api/client", () => {
         status: currentStatus,
         citizen_first_name: currentCitizenFirstName,
         citizen_last_name: currentCitizenLastName,
-        assigned_to_staff_profile_id: 2,
+        assigned_to_staff_profile_id: currentAssignedStaffProfileId,
+        assigned_to_display_name: currentAssignedDisplayName,
         created_at: "2026-01-01T00:00:00Z",
         updated_at: "2026-01-01T00:00:00Z",
       },
@@ -61,7 +64,8 @@ vi.mock("../../api/client", () => {
         status: currentStatus,
         citizen_first_name: currentCitizenFirstName,
         citizen_last_name: currentCitizenLastName,
-        assigned_to_staff_profile_id: 2,
+        assigned_to_staff_profile_id: currentAssignedStaffProfileId,
+        assigned_to_display_name: currentAssignedDisplayName,
         created_at: "2026-01-01T00:00:00Z",
         updated_at: "2026-01-01T00:00:00Z",
       },
@@ -80,7 +84,11 @@ vi.mock("../../api/client", () => {
     })),
     createRequest: vi.fn().mockResolvedValue({ id: 1 }),
     deleteCategory: vi.fn().mockResolvedValue(undefined),
-    claimRequest: vi.fn().mockResolvedValue({}),
+    claimRequest: vi.fn().mockImplementation(async () => {
+      currentAssignedStaffProfileId = 1;
+      currentAssignedDisplayName = "Alex Don";
+      return {};
+    }),
     updateRequestStatus: vi.fn().mockImplementation(
       async (_role: string, _id: number, _actor: number, to: string) => {
         currentStatus = to;
@@ -109,13 +117,40 @@ vi.mock("../../api/client", () => {
       currentCitizenFirstName = firstName;
       currentCitizenLastName = lastName;
     },
+    __setAssignment: (staffProfileId: number | null, displayName: string | null) => {
+      currentAssignedStaffProfileId = staffProfileId;
+      currentAssignedDisplayName = displayName;
+    },
+    __resetState: () => {
+      currentStatus = "NEW";
+      currentCitizenFirstName = "Jane";
+      currentCitizenLastName = "Citizen";
+      currentAssignedStaffProfileId = null;
+      currentAssignedDisplayName = null;
+      comments = [
+        {
+          id: 1,
+          request_id: 1,
+          author_staff_profile_id: 1,
+          author_role: "WORKER",
+          author_display_name: "Worker One",
+          comment_text: "Initial",
+          created_at: "2026-01-01T00:00:00Z",
+        },
+      ];
+    },
   };
 });
 
 beforeEach(() => {
   localStorage.clear();
-  (apiClient as typeof apiClient & { __setCitizenName: (firstName: string | null, lastName: string | null) => void })
-    .__setCitizenName("Jane", "Citizen");
+  (
+    apiClient as typeof apiClient & {
+      __setCitizenName: (firstName: string | null, lastName: string | null) => void;
+      __setAssignment: (staffProfileId: number | null, displayName: string | null) => void;
+      __resetState: () => void;
+    }
+  ).__resetState();
 });
 
 test("basic dashboard user flow works", async () => {
@@ -135,9 +170,11 @@ test("basic dashboard user flow works", async () => {
   await waitFor(() => expect(screen.getByTestId("staff-list-table")).toBeInTheDocument());
   expect(screen.getByTestId("worker-select")).toBeInTheDocument();
   expect(screen.getByTestId("claim-actor-display")).toHaveTextContent("Bearbeiter: Alex Don");
+  expect(screen.getByTestId("worker-action-note")).toHaveTextContent("noch nicht uebernommen");
   expect(screen.getByTestId("worker-category-delete-form")).toBeInTheDocument();
   fireEvent.click(screen.getByTestId("claim-submit"));
 
+  await waitFor(() => expect(screen.queryByTestId("worker-action-note")).not.toBeInTheDocument());
   fireEvent.change(screen.getByTestId("status-next"), { target: { value: "IN_PROGRESS" } });
   fireEvent.click(screen.getByTestId("status-submit"));
 
@@ -179,10 +216,32 @@ test("worker role cannot see create request form", async () => {
 });
 
 test("detail page shows anonymous when citizen name is missing", async () => {
-  (apiClient as typeof apiClient & { __setCitizenName: (firstName: string | null, lastName: string | null) => void })
-    .__setCitizenName(null, null);
+  (
+    apiClient as typeof apiClient & {
+      __setCitizenName: (firstName: string | null, lastName: string | null) => void;
+      __setAssignment: (staffProfileId: number | null, displayName: string | null) => void;
+    }
+  ).__setCitizenName(null, null);
 
   render(<RequestsPage />);
 
   await waitFor(() => expect(screen.getByTestId("request-detail")).toHaveTextContent("Buerger: Anonymous"));
+});
+
+test("worker cannot process request assigned to another worker", async () => {
+  (
+    apiClient as typeof apiClient & {
+      __setCitizenName: (firstName: string | null, lastName: string | null) => void;
+      __setAssignment: (staffProfileId: number | null, displayName: string | null) => void;
+    }
+  ).__setAssignment(99, "Other Worker");
+
+  render(<RequestsPage />);
+
+  fireEvent.change(screen.getByTestId("role-select"), { target: { value: "worker" } });
+
+  await waitFor(() => expect(screen.getByTestId("worker-action-note")).toHaveTextContent("Other Worker"));
+  expect(screen.getByTestId("claim-submit")).toBeDisabled();
+  expect(screen.getByTestId("status-submit")).toBeDisabled();
+  expect(screen.getByTestId("comment-submit")).toBeDisabled();
 });

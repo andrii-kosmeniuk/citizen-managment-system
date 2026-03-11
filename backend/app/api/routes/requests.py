@@ -81,6 +81,27 @@ def _require_category(db: Session, category_id: int) -> Category:
     return category
 
 
+def _require_unassigned_request(req: CitizenRequest) -> None:
+    if req.assigned_to_staff_profile_id is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Das Anliegen ist bereits einem anderen Mitarbeiter zugewiesen.",
+        )
+
+
+def _require_assigned_worker(req: CitizenRequest, actor: StaffProfile) -> None:
+    if req.assigned_to_staff_profile_id is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Das Anliegen muss zuerst von einem Mitarbeiter uebernommen werden.",
+        )
+    if req.assigned_to_staff_profile_id != actor.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Nur der zugewiesene Mitarbeiter darf dieses Anliegen bearbeiten.",
+        )
+
+
 @router.get("", response_model=list[RequestRead])
 def list_requests(
     status_filter: RequestStatus | None = Query(default=None, alias="status"),
@@ -195,6 +216,7 @@ def claim_request(
 
     if req.status == RequestStatus.CLOSED:
         raise HTTPException(status_code=409, detail="Ein geschlossenes Anliegen kann nicht bearbeitet werden.")
+    _require_unassigned_request(req)
 
     req.assigned_to_staff_profile_id = payload.actor_staff_profile_id
     req.assigned_to_person_id = actor.person_id
@@ -220,6 +242,7 @@ def update_status(
 
     if req.status == RequestStatus.CLOSED:
         raise HTTPException(status_code=409, detail="Ein geschlossenes Anliegen kann nicht bearbeitet werden.")
+    _require_assigned_worker(req, actor)
 
     if not is_valid_transition(req.status, payload.to_status):
         raise HTTPException(
@@ -287,6 +310,9 @@ def add_comment(
                 detail="Fuer Mitarbeiterkommentare ist author_staff_profile_id erforderlich.",
             )
         author = _require_staff_profile(db, payload.author_staff_profile_id)
+        if req.status == RequestStatus.CLOSED:
+            raise HTTPException(status_code=409, detail="Ein geschlossenes Anliegen kann nicht bearbeitet werden.")
+        _require_assigned_worker(req, author)
         author_staff_profile_id = author.id
         author_person_id = author.person_id
         author_role = "WORKER"

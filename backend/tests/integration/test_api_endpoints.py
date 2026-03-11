@@ -154,7 +154,7 @@ def test_requests_end_to_end_all_actions(client, db_session):
 
     closed = client.patch(
         f"/requests/{request_id}/status",
-        json={"actor_staff_profile_id": creator.id, "to_status": "CLOSED", "change_note": "Verified"},
+        json={"actor_staff_profile_id": actor.id, "to_status": "CLOSED", "change_note": "Verified"},
         headers=WORKER_HEADERS,
     )
     assert closed.status_code == 200
@@ -206,6 +206,108 @@ def test_requests_invalid_transition_returns_409(client, db_session):
         headers=WORKER_HEADERS,
     )
     assert invalid.status_code == 409
+
+
+def test_only_assigned_worker_can_process_request(client, db_session):
+    creator = _create_staff_profile(db_session, "creator-owner@example.com", "Create", "Owner")
+    assignee = _create_staff_profile(db_session, "assignee@example.com", "Assigned", "Worker")
+    other_worker = _create_staff_profile(db_session, "other@example.com", "Other", "Worker")
+    category_id = next(item["id"] for item in client.get("/categories").json() if item["name"] == "Umwelt")
+
+    created = client.post(
+        "/requests",
+        json={
+            "creator_staff_profile_id": creator.id,
+            "title": "Ownership test",
+            "description": "Assigned worker should control processing",
+            "category_id": category_id,
+            "priority": "MITTEL",
+            "citizen_first_name": "Olga",
+            "citizen_last_name": "Owner",
+        },
+        headers=CITIZEN_HEADERS,
+    )
+    assert created.status_code == 201
+    request_id = created.json()["id"]
+
+    claim = client.post(
+        f"/requests/{request_id}/claim",
+        json={"actor_staff_profile_id": assignee.id},
+        headers=WORKER_HEADERS,
+    )
+    assert claim.status_code == 200
+    assert claim.json()["assigned_to_staff_profile_id"] == assignee.id
+
+    second_claim = client.post(
+        f"/requests/{request_id}/claim",
+        json={"actor_staff_profile_id": other_worker.id},
+        headers=WORKER_HEADERS,
+    )
+    assert second_claim.status_code == 409
+
+    foreign_status = client.patch(
+        f"/requests/{request_id}/status",
+        json={"actor_staff_profile_id": other_worker.id, "to_status": "IN_PROGRESS"},
+        headers=WORKER_HEADERS,
+    )
+    assert foreign_status.status_code == 403
+
+    foreign_comment = client.post(
+        f"/requests/{request_id}/comments",
+        json={"author_staff_profile_id": other_worker.id, "comment_text": "I should not be allowed"},
+        headers=WORKER_HEADERS,
+    )
+    assert foreign_comment.status_code == 403
+
+    own_status = client.patch(
+        f"/requests/{request_id}/status",
+        json={"actor_staff_profile_id": assignee.id, "to_status": "IN_PROGRESS"},
+        headers=WORKER_HEADERS,
+    )
+    assert own_status.status_code == 200
+
+    own_comment = client.post(
+        f"/requests/{request_id}/comments",
+        json={"author_staff_profile_id": assignee.id, "comment_text": "Assigned worker update"},
+        headers=WORKER_HEADERS,
+    )
+    assert own_comment.status_code == 201
+
+
+def test_worker_processing_requires_assignment(client, db_session):
+    creator = _create_staff_profile(db_session, "creator-unassigned@example.com", "Create", "Unassigned")
+    worker = _create_staff_profile(db_session, "worker-unassigned@example.com", "Worker", "Unassigned")
+    category_id = next(item["id"] for item in client.get("/categories").json() if item["name"] == "Verkehr")
+
+    created = client.post(
+        "/requests",
+        json={
+            "creator_staff_profile_id": creator.id,
+            "title": "Unassigned processing",
+            "description": "Should require claim first",
+            "category_id": category_id,
+            "priority": "NIEDRIG",
+            "citizen_first_name": "Una",
+            "citizen_last_name": "Signed",
+        },
+        headers=CITIZEN_HEADERS,
+    )
+    assert created.status_code == 201
+    request_id = created.json()["id"]
+
+    status_without_claim = client.patch(
+        f"/requests/{request_id}/status",
+        json={"actor_staff_profile_id": worker.id, "to_status": "IN_PROGRESS"},
+        headers=WORKER_HEADERS,
+    )
+    assert status_without_claim.status_code == 409
+
+    comment_without_claim = client.post(
+        f"/requests/{request_id}/comments",
+        json={"author_staff_profile_id": worker.id, "comment_text": "Need claim first"},
+        headers=WORKER_HEADERS,
+    )
+    assert comment_without_claim.status_code == 409
 
 
 def test_validation_and_not_found_errors(client, db_session):

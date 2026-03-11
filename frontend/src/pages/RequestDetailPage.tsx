@@ -32,6 +32,10 @@ function getCitizenDisplayName(firstName: string | null, lastName: string | null
   return [firstName, lastName].filter(Boolean).join(" ") || "Anonymous";
 }
 
+function getWorkerDisplayName(worker: StaffProfile | null): string | null {
+  return worker ? `${worker.first_name} ${worker.last_name}` : null;
+}
+
 export function RequestDetailPage({ actorRole, requestId, selectedWorker, onDataChanged }: Props) {
   const [detail, setDetail] = useState<RequestDetailResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -77,7 +81,22 @@ export function RequestDetailPage({ actorRole, requestId, selectedWorker, onData
   const isClosed = detail.request.status === "CLOSED";
   const isWorker = actorRole === "worker";
   const selectedWorkerId = selectedWorker?.id ?? null;
-  const selectedWorkerDisplayName = selectedWorker ? `${selectedWorker.first_name} ${selectedWorker.last_name}` : null;
+  const selectedWorkerDisplayName = getWorkerDisplayName(selectedWorker);
+  const assignedWorkerId = detail.request.assigned_to_staff_profile_id ?? null;
+  const assignedWorkerDisplayName =
+    assignedWorkerId !== null
+      ? detail.request.assigned_to_display_name ?? (assignedWorkerId === selectedWorkerId ? selectedWorkerDisplayName : null)
+      : null;
+  const canClaim = !isClosed && assignedWorkerId === null && selectedWorkerId !== null;
+  const canProcessAsWorker = !isClosed && selectedWorkerId !== null && assignedWorkerId === selectedWorkerId;
+  const workerActionMessage =
+    selectedWorkerId === null
+      ? "Bitte zuerst ein Mitarbeiterprofil auswaehlen."
+      : assignedWorkerId === null
+        ? "Dieses Anliegen ist noch nicht uebernommen. Erst uebernehmen, dann bearbeiten."
+        : assignedWorkerId !== selectedWorkerId
+          ? `Dieses Anliegen ist ${assignedWorkerDisplayName ? `an ${assignedWorkerDisplayName}` : "einem anderen Mitarbeiter"} zugewiesen.`
+          : null;
 
   const handleClaim = async () => {
     if (selectedWorkerId === null) {
@@ -144,16 +163,21 @@ export function RequestDetailPage({ actorRole, requestId, selectedWorker, onData
             <span data-testid="claim-actor-display">
               {selectedWorkerDisplayName ? `Bearbeiter: ${selectedWorkerDisplayName}` : "Kein Mitarbeiter ausgewaehlt"}
             </span>
-            <button data-testid="claim-submit" onClick={handleClaim} disabled={isClosed || selectedWorkerId === null}>
+            <button data-testid="claim-submit" onClick={handleClaim} disabled={!canClaim}>
               Anliegen uebernehmen
             </button>
           </div>
+          {workerActionMessage && (
+            <p data-testid="worker-action-note" style={{ marginTop: 8, color: "#555" }}>
+              {workerActionMessage}
+            </p>
+          )}
 
           <StatusChanger
             onSubmit={handleStatusSubmit}
             actorStaffProfileId={selectedWorkerId}
             actorDisplayName={selectedWorkerDisplayName}
-            disabled={isClosed}
+            disabled={!canProcessAsWorker}
           />
         </>
       )}
@@ -162,7 +186,7 @@ export function RequestDetailPage({ actorRole, requestId, selectedWorker, onData
         onSubmit={handleCommentSubmit}
         actorStaffProfileId={selectedWorkerId}
         actorDisplayName={selectedWorkerDisplayName}
-        disabled={isClosed}
+        disabled={isWorker ? !canProcessAsWorker : isClosed}
       />
 
       <h3>Kommentare</h3>
