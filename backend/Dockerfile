@@ -16,6 +16,7 @@ COPY backend/app ./app
 RUN pip install --no-cache-dir -e .[dev]
 
 COPY database/migrations /migrations
+COPY database/current_schema.sql /schema/current_schema.sql
 COPY database/seed /seed
 COPY backend/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

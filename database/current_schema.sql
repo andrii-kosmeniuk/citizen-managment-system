@@ -68,6 +68,12 @@ CREATE TABLE role (
   created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+INSERT INTO role (code, description)
+VALUES
+  ('CITIZEN', 'Citizen role for request creation and comments'),
+  ('WORKER', 'Staff worker role'),
+  ('ADMIN', 'Administrative role');
+
 CREATE TABLE person_role (
   id                 BIGSERIAL PRIMARY KEY,
   person_id          BIGINT NOT NULL,
@@ -91,6 +97,13 @@ CREATE TABLE category (
 
   CONSTRAINT chk_category_name_not_blank CHECK (LENGTH(BTRIM(name)) > 0)
 );
+
+INSERT INTO category (name, description, is_active)
+VALUES
+  ('Infrastructur', 'Roads, lights, public facilities maintenance issues.', TRUE),
+  ('Umwelt', 'Waste, pollution, parks, and environmental concerns.', TRUE),
+  ('Verkehr', 'Road signs, traffic lights, parking, and traffic flow issues.', TRUE),
+  ('Sonstiges', 'General requests that do not match predefined categories.', TRUE);
 
 CREATE TABLE citizen_request (
   id                           BIGSERIAL PRIMARY KEY,

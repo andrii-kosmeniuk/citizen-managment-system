@@ -57,6 +57,10 @@ DB zurücksetzen (optional, sauberer Zustand):
 ./scripts/run_fullstack.sh --fresh
 ```
 
+DB-Hinweis:
+- Frische Resets/Bootstrap verwenden `database/current_schema.sql`.
+- Inkrementelle Aenderungen fuer bestehende Datenbanken bleiben in `database/migrations/`.
+
 
 ## 3) Nur Datenbank
 
@@ -88,18 +92,36 @@ SELECT * FROM citizen_request;
 
 ## 4) Full Stack ohne Docker
 
-### 4.1) Backend starten
+Es gibt zwei Moeglichkeiten:
+- das Hilfsskript verwenden, um alles auf einmal zu starten (4.1)
+- DB, Backend und Frontend manuell starten (4.2 - 4.4)
+
+### 4.1) Alles mit einem Befehl starten
+
+```bash
+./scripts/run_fullstack.sh
+./scripts/run_fullstack.sh --fresh   # DB vorher zuruecksetzen
+```
+
+### 4.2) DB starten
+
+```bash
+docker compose up -d db
+docker compose ps   # pruefen, ob sie laeuft
+```
+
+### 4.3) Backend starten
 
 ```bash
 cd backend
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .[dev]
 export DATABASE_URL="postgresql+psycopg://postgres:postgres@localhost:5432/citizen_requests"
 uvicorn app.main:app --reload --port 8000
 ```
 
-### 4.2) Frontend starten
+### 4.4) Frontend starten
 
 ```bash
 cd frontend
@@ -118,7 +140,7 @@ npm run dev
 - `PATCH /requests/{id}/status`
 - `POST /requests/{id}/comments`
 
-### 4.3) Qualitätsprüfungen
+### 4.5) Qualitaetspruefungen
 
 Backend-Prüfungen:
 
@@ -348,6 +370,7 @@ erDiagram
 ### Projektstruktur
 - `backend/`: FastAPI REST API + Business-Logik
 - `frontend/`: React-App-Scaffold
+- `database/current_schema.sql`: kanonischer Schema-Snapshot fuer frische Installationen
 - `database/migrations/`: SQL-Migrationen
 - `docs/`: Assessment-Artefakte (Spezifikation, Architektur, AI-Nutzung)
 - `scripts/`: Hilfsskripte

@@ -45,7 +45,7 @@ until docker compose exec -T "$DB_SERVICE" pg_isready -U "$DB_USER" -d "$DB_NAME
 done
 
 if [[ "$FRESH_START" == "true" ]]; then
-  echo "Fresh mode: resetting database and applying all migrations..."
+  echo "Fresh mode: resetting database and applying current_schema.sql..."
   "$ROOT_DIR/scripts/reset_db.sh" >/dev/null
 else
   echo "Skipping DB reset (default mode). Use --fresh to reset DB."

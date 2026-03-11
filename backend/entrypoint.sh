@@ -6,6 +6,7 @@ DB_PORT="${DB_PORT:-5432}"
 DB_USER="${DB_USER:-postgres}"
 DB_NAME="${DB_NAME:-citizen_requests}"
 MIGRATIONS_DIR="${MIGRATIONS_DIR:-/migrations}"
+CURRENT_SCHEMA_FILE="${CURRENT_SCHEMA_FILE:-/schema/current_schema.sql}"
 SEED_FILE="${SEED_FILE:-/seed/001_test_values.sql}"
 
 export PGPASSWORD="${DB_PASSWORD:-postgres}"
@@ -21,6 +22,18 @@ PSQL="psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -v ON_ERROR_S
 
 # Track one-time applied migrations.
 $PSQL -c "CREATE TABLE IF NOT EXISTS schema_migrations (filename TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW());"
+
+has_core_schema="$($PSQL -Atc "SELECT (to_regclass('public.citizen_request') IS NOT NULL AND to_regtype('public.request_status') IS NOT NULL);")"
+applied_migrations="$($PSQL -Atc "SELECT COUNT(*) FROM schema_migrations;")"
+
+if [ "$has_core_schema" != "t" ] && [ "$applied_migrations" = "0" ] && [ -f "$CURRENT_SCHEMA_FILE" ]; then
+  echo "Empty database detected. Applying canonical schema snapshot: $(basename "$CURRENT_SCHEMA_FILE")"
+  $PSQL -f "$CURRENT_SCHEMA_FILE"
+  for file in $(find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name '*.sql' | sort); do
+    filename="$(basename "$file")"
+    $PSQL -c "INSERT INTO schema_migrations (filename) VALUES ('${filename}') ON CONFLICT (filename) DO NOTHING;"
+  done
+fi
 
 for file in $(find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name '*.sql' | sort); do
   filename="$(basename "$file")"

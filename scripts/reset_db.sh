@@ -4,10 +4,10 @@ set -euo pipefail
 DB_SERVICE="${DB_SERVICE:-db}"
 DB_USER="${DB_USER:-postgres}"
 DB_NAME="${DB_NAME:-citizen_requests}"
-MIGRATIONS_DIR="${MIGRATIONS_DIR:-database/migrations}"
+CURRENT_SCHEMA_FILE="${CURRENT_SCHEMA_FILE:-database/current_schema.sql}"
 
-if [[ ! -d "$MIGRATIONS_DIR" ]]; then
-  echo "Migrations directory not found: $MIGRATIONS_DIR" >&2
+if [[ ! -f "$CURRENT_SCHEMA_FILE" ]]; then
+  echo "Current schema file not found: $CURRENT_SCHEMA_FILE" >&2
   exit 1
 fi
 
@@ -22,15 +22,7 @@ done
 echo "Resetting schema public in database '$DB_NAME'..."
 docker compose exec -T "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"
 
-mapfile -t migrations < <(find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name '*.sql' | sort)
-if [[ "${#migrations[@]}" -eq 0 ]]; then
-  echo "No SQL migrations found in $MIGRATIONS_DIR" >&2
-  exit 1
-fi
+echo "Applying canonical schema snapshot: $CURRENT_SCHEMA_FILE"
+docker compose exec -T "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f /dev/stdin < "$CURRENT_SCHEMA_FILE"
 
-for migration_file in "${migrations[@]}"; do
-  echo "Applying migration: $migration_file"
-  docker compose exec -T "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f /dev/stdin < "$migration_file"
-done
-
-echo "Database reset and migration applied successfully."
+echo "Database reset and current schema applied successfully."
