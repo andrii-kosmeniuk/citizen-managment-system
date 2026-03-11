@@ -3,32 +3,29 @@ import { useState } from "react";
 interface Props {
   role: "citizen" | "worker";
   onSubmit: (authorStaffProfileId: number | undefined, commentText: string) => Promise<void>;
+  actorStaffProfileId?: number | null;
+  actorDisplayName?: string | null;
   disabled?: boolean;
 }
 
-export function CommentBox({ role, onSubmit, disabled }: Props) {
-  const [authorStaffProfileId, setAuthorStaffProfileId] = useState(1);
+export function CommentBox({ role, onSubmit, actorStaffProfileId, actorDisplayName, disabled }: Props) {
   const [commentText, setCommentText] = useState("");
   const isWorker = role === "worker";
+  const isSubmitDisabled = disabled || (isWorker && !actorStaffProfileId);
 
   return (
     <form
       onSubmit={async (e) => {
         e.preventDefault();
-        await onSubmit(isWorker ? authorStaffProfileId : undefined, commentText);
+        await onSubmit(isWorker ? actorStaffProfileId ?? undefined : undefined, commentText);
         setCommentText("");
       }}
       style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}
     >
       {isWorker && (
-        <input
-          data-testid="comment-author-id"
-          type="number"
-          min={1}
-          value={authorStaffProfileId}
-          onChange={(e) => setAuthorStaffProfileId(Number(e.target.value))}
-          placeholder="Autor Mitarbeiterprofil-ID"
-        />
+        <span data-testid="comment-actor-display">
+          {actorDisplayName ? `Kommentar als: ${actorDisplayName}` : "Kein Mitarbeiter ausgewaehlt"}
+        </span>
       )}
       <input
         data-testid="comment-text"
@@ -36,7 +33,7 @@ export function CommentBox({ role, onSubmit, disabled }: Props) {
         onChange={(e) => setCommentText(e.target.value)}
         placeholder="Kommentar hinzufuegen"
       />
-      <button data-testid="comment-submit" disabled={disabled} type="submit">
+      <button data-testid="comment-submit" disabled={isSubmitDisabled} type="submit">
         Kommentar hinzufuegen
       </button>
     </form>

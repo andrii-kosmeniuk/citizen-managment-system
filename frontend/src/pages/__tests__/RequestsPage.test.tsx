@@ -133,6 +133,8 @@ test("basic dashboard user flow works", async () => {
   fireEvent.change(screen.getByTestId("role-select"), { target: { value: "worker" } });
   await waitFor(() => expect(screen.getByTestId("claim-submit")).toBeInTheDocument());
   await waitFor(() => expect(screen.getByTestId("staff-list-table")).toBeInTheDocument());
+  expect(screen.getByTestId("worker-select")).toBeInTheDocument();
+  expect(screen.getByTestId("claim-actor-display")).toHaveTextContent("Bearbeiter: Alex Don");
   expect(screen.getByTestId("worker-category-delete-form")).toBeInTheDocument();
   fireEvent.click(screen.getByTestId("claim-submit"));
 
@@ -160,6 +162,7 @@ test("citizen role hides worker-only controls", async () => {
   expect(screen.queryByTestId("worker-category-form")).not.toBeInTheDocument();
   expect(screen.queryByTestId("worker-category-delete-form")).not.toBeInTheDocument();
   expect(screen.queryByTestId("staff-list-table")).not.toBeInTheDocument();
+  expect(screen.queryByTestId("worker-select")).not.toBeInTheDocument();
   expect(screen.queryByTestId("claim-submit")).not.toBeInTheDocument();
   expect(screen.queryByTestId("status-submit")).not.toBeInTheDocument();
   expect(screen.getByTestId("comment-submit")).toBeInTheDocument();

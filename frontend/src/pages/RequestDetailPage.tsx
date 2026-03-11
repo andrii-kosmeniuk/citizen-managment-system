@@ -4,10 +4,12 @@ import { addRequestComment, claimRequest, fetchRequestDetail, updateRequestStatu
 import { CommentBox } from "../components/CommentBox";
 import { StatusChanger } from "../components/StatusChanger";
 import type { ActorRole, RequestDetailResponse, RequestPriority, RequestStatus } from "../types/request";
+import type { StaffProfile } from "../types/staff_profile";
 
 interface Props {
   actorRole: ActorRole;
   requestId: number | null;
+  selectedWorker: StaffProfile | null;
   onDataChanged: () => Promise<void>;
 }
 
@@ -30,11 +32,10 @@ function getCitizenDisplayName(firstName: string | null, lastName: string | null
   return [firstName, lastName].filter(Boolean).join(" ") || "Anonymous";
 }
 
-export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props) {
+export function RequestDetailPage({ actorRole, requestId, selectedWorker, onDataChanged }: Props) {
   const [detail, setDetail] = useState<RequestDetailResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [claimActorStaffProfileId, setClaimActorStaffProfileId] = useState(1);
 
   const loadDetail = async () => {
     if (!requestId) {
@@ -75,11 +76,16 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
 
   const isClosed = detail.request.status === "CLOSED";
   const isWorker = actorRole === "worker";
+  const selectedWorkerId = selectedWorker?.id ?? null;
+  const selectedWorkerDisplayName = selectedWorker ? `${selectedWorker.first_name} ${selectedWorker.last_name}` : null;
 
   const handleClaim = async () => {
+    if (selectedWorkerId === null) {
+      return;
+    }
     setError(null);
     try {
-      await claimRequest(actorRole, requestId, claimActorStaffProfileId);
+      await claimRequest(actorRole, requestId, selectedWorkerId);
       await loadDetail();
       await onDataChanged();
     } catch (err) {
@@ -134,23 +140,30 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
 
       {isWorker && (
         <>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <input
-              data-testid="claim-actor-id"
-              type="number"
-              min={1}
-              value={claimActorStaffProfileId}
-              onChange={(e) => setClaimActorStaffProfileId(Number(e.target.value))}
-            />
-            <button data-testid="claim-submit" onClick={handleClaim} disabled={isClosed}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <span data-testid="claim-actor-display">
+              {selectedWorkerDisplayName ? `Bearbeiter: ${selectedWorkerDisplayName}` : "Kein Mitarbeiter ausgewaehlt"}
+            </span>
+            <button data-testid="claim-submit" onClick={handleClaim} disabled={isClosed || selectedWorkerId === null}>
               Anliegen uebernehmen
             </button>
           </div>
 
-          <StatusChanger onSubmit={handleStatusSubmit} disabled={isClosed} />
+          <StatusChanger
+            onSubmit={handleStatusSubmit}
+            actorStaffProfileId={selectedWorkerId}
+            actorDisplayName={selectedWorkerDisplayName}
+            disabled={isClosed}
+          />
         </>
       )}
-      <CommentBox role={actorRole} onSubmit={handleCommentSubmit} disabled={isClosed} />
+      <CommentBox
+        role={actorRole}
+        onSubmit={handleCommentSubmit}
+        actorStaffProfileId={selectedWorkerId}
+        actorDisplayName={selectedWorkerDisplayName}
+        disabled={isClosed}
+      />
 
       <h3>Kommentare</h3>
       {detail.comments.length === 0 ? (

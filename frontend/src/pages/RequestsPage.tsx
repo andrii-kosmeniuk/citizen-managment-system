@@ -37,6 +37,7 @@ export function RequestsPage() {
   const [requests, setRequests] = useState<CitizenRequest[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [staffProfiles, setStaffProfiles] = useState<StaffProfile[]>([]);
+  const [selectedWorkerId, setSelectedWorkerId] = useState<number | null>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
   const [filters, setFilters] = useState<Filters>({});
   const [loading, setLoading] = useState(true);
@@ -91,11 +92,25 @@ export function RequestsPage() {
   const loadStaffProfiles = async (role: ActorRole = actorRole) => {
     if (role !== "worker") {
       setStaffProfiles([]);
+      setSelectedWorkerId(null);
       return;
     }
     const profiles = await fetchStaffProfiles(role);
     setStaffProfiles(profiles);
+    setSelectedWorkerId((prev) => {
+      if (profiles.length === 0) {
+        return null;
+      }
+      if (prev !== null && profiles.some((profile) => profile.id === prev)) {
+        return prev;
+      }
+      const availableProfile = profiles.find((profile) => profile.is_available && profile.is_active);
+      return availableProfile?.id ?? profiles[0].id;
+    });
   };
+
+  const selectedWorker =
+    selectedWorkerId === null ? null : staffProfiles.find((profile) => profile.id === selectedWorkerId) ?? null;
 
   useEffect(() => {
     localStorage.setItem("actor_role", actorRole);
@@ -183,6 +198,28 @@ export function RequestsPage() {
             <option value="worker">Mitarbeiter:in</option>
           </select>
         </label>
+        {isWorker && (
+          <label htmlFor="worker-select" style={{ marginLeft: 16 }}>
+            Aktiver Mitarbeiter:
+            <select
+              id="worker-select"
+              data-testid="worker-select"
+              value={selectedWorkerId ?? ""}
+              onChange={(e) => setSelectedWorkerId(e.target.value ? Number(e.target.value) : null)}
+              style={{ marginLeft: 8 }}
+            >
+              {staffProfiles.length === 0 ? (
+                <option value="">Keine Mitarbeiterprofile verfuegbar</option>
+              ) : (
+                staffProfiles.map((profile) => (
+                  <option key={profile.id} value={profile.id}>
+                    {profile.first_name} {profile.last_name} ({profile.employee_code})
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
+        )}
       </div>
 
       {!isWorker ? (
@@ -329,6 +366,7 @@ export function RequestsPage() {
           <RequestDetailPage
             actorRole={actorRole}
             requestId={selectedRequestId}
+            selectedWorker={selectedWorker}
             onDataChanged={async () => loadRequests(filters)}
           />
         </section>
