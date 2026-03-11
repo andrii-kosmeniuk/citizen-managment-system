@@ -26,6 +26,10 @@ const PRIORITY_LABELS: Record<RequestPriority, string> = {
   KRITISCH: "KRITISCH",
 };
 
+function getCitizenDisplayName(firstName: string | null, lastName: string | null): string {
+  return [firstName, lastName].filter(Boolean).join(" ") || "Anonymous";
+}
+
 export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props) {
   const [detail, setDetail] = useState<RequestDetailResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -113,7 +117,7 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
       </h2>
       <p>{detail.request.description}</p>
       <p>
-        <strong>Buerger:</strong> {detail.request.citizen_first_name} {detail.request.citizen_last_name}
+        <strong>Buerger:</strong> {getCitizenDisplayName(detail.request.citizen_first_name, detail.request.citizen_last_name)}
       </p>
       <p>
         <strong>Status:</strong> {STATUS_LABELS[detail.request.status]}

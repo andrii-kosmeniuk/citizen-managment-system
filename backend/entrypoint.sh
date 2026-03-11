@@ -5,6 +5,7 @@ DB_HOST="${DB_HOST:-db}"
 DB_PORT="${DB_PORT:-5432}"
 DB_USER="${DB_USER:-postgres}"
 DB_NAME="${DB_NAME:-citizen_requests}"
+MAINTENANCE_DB_NAME="${MAINTENANCE_DB_NAME:-postgres}"
 MIGRATIONS_DIR="${MIGRATIONS_DIR:-/migrations}"
 CURRENT_SCHEMA_FILE="${CURRENT_SCHEMA_FILE:-/schema/current_schema.sql}"
 SEED_FILE="${SEED_FILE:-/seed/001_test_values.sql}"
@@ -12,11 +13,19 @@ SEED_FILE="${SEED_FILE:-/seed/001_test_values.sql}"
 export PGPASSWORD="${DB_PASSWORD:-postgres}"
 
 echo "Waiting for PostgreSQL at ${DB_HOST}:${DB_PORT}..."
-until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" >/dev/null 2>&1; do
+until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$MAINTENANCE_DB_NAME" >/dev/null 2>&1; do
   sleep 1
 done
 
-echo "PostgreSQL is ready."
+echo "PostgreSQL server is ready."
+
+MAINTENANCE_PSQL="psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${MAINTENANCE_DB_NAME} -v ON_ERROR_STOP=1"
+
+db_exists="$($MAINTENANCE_PSQL -Atc "SELECT 1 FROM pg_database WHERE datname = '${DB_NAME}' LIMIT 1;")"
+if [ "$db_exists" != "1" ]; then
+  echo "Creating application database: ${DB_NAME}"
+  $MAINTENANCE_PSQL -c "CREATE DATABASE ${DB_NAME};"
+fi
 
 PSQL="psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -v ON_ERROR_STOP=1"
 

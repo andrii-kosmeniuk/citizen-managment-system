@@ -11,10 +11,11 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d citizen_requests"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 5s
       timeout: 5s
       retries: 20
+      start_period: 15s
 
   backend:
     build:
@@ -28,11 +29,22 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres
       DB_NAME: citizen_requests
+      MAINTENANCE_DB_NAME: postgres
     depends_on:
       db:
         condition: service_healthy
     ports:
       - "8000:8000"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\"",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
 
   frontend:
     build:
@@ -42,7 +54,8 @@ services:
     environment:
       VITE_API_BASE: http://localhost:8000
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
       - "5173:5173"
 

@@ -278,8 +278,8 @@ erDiagram
         bigint category_id FK
         string priority
         string status
-        string citizen_first_name
-        string citizen_last_name
+        string citizen_first_name nullable
+        string citizen_last_name nullable
         bigint assigned_to_staff_profile_id FK
         bigint citizen_person_id FK
         bigint created_by_person_id FK
@@ -350,8 +350,32 @@ erDiagram
 
 ## 8) Use Cases
 
-- This system can be used by property managers to quickly identify problems people face while living in a specific building.
-- This system can also be used by government agencies to provide instructions for municipal sanitation workers and better understand local issues through citizen feedback.
+### Use Cases
+- Citizen creates a new request:
+  - Goal: report a municipal issue or question with title, description, category, priority, and optional name.
+  - Result: a new request is stored with status `NEW` and an initial history entry.
+- Citizen reviews existing requests:
+  - Goal: browse and filter requests by status, category, and priority.
+  - Result: the citizen can identify relevant requests and open the detail view.
+- Citizen adds follow-up information:
+  - Goal: add a comment with extra context after the request was created.
+  - Result: the comment is stored as a historical record unless the request is already closed.
+- Worker claims a request:
+  - Goal: take ownership of an unassigned or open request.
+  - Result: the request is assigned to a worker profile for further processing.
+- Worker updates the request status:
+  - Goal: move the request through the allowed lifecycle (`NEW` -> `IN_PROGRESS` -> `CLARIFICATION_NEEDED`/`RESOLVED` -> `CLOSED`).
+  - Result: valid transitions are saved, timestamps are updated, and each change is written to status history.
+- Worker manages categories:
+  - Goal: create new categories or deactivate obsolete ones.
+  - Result: request classification stays maintainable without deleting historical request data.
+
+### User Stories
+- As a citizen, I want to report a local problem quickly so that the city administration can process it.
+- As a citizen, I want to track the status of my request so that I know whether it is being handled.
+- As a worker, I want to claim a request so that responsibility for processing is clear.
+- As a worker, I want to add comments and status changes so that the full handling history remains auditable.
+- As a worker, I want closed requests to be immutable so that completed cases cannot be changed afterward.
 
 ## 9) Architecture Overview
 

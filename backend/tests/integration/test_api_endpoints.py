@@ -17,7 +17,11 @@ def _create_staff_profile(
     db_session.add(person)
     db_session.flush()
 
-    profile = StaffProfile(person_id=person.id, employee_code=f"EMP-{first_name.upper()}-{last_name.upper()}", is_available=True)
+    profile = StaffProfile(
+        person_id=person.id,
+        employee_code=f"EMP-{first_name.upper()}-{last_name.upper()}",
+        is_available=True,
+    )
     db_session.add(profile)
     db_session.commit()
     db_session.refresh(profile)
@@ -267,6 +271,42 @@ def test_validation_and_not_found_errors(client, db_session):
         headers=WORKER_HEADERS,
     )
     assert blank_comment.status_code == 422
+
+
+def test_requests_allow_anonymous_citizen_name(client, db_session):
+    creator = _create_staff_profile(db_session, "creator5@example.com", "Create", "Five")
+    category_id = next(item["id"] for item in client.get("/categories").json() if item["name"] == "Sonstiges")
+
+    created = client.post(
+        "/requests",
+        json={
+            "creator_staff_profile_id": creator.id,
+            "title": "Anonymous request",
+            "description": "No citizen name provided",
+            "category_id": category_id,
+            "priority": "NIEDRIG",
+            "citizen_first_name": "",
+            "citizen_last_name": "",
+        },
+        headers=CITIZEN_HEADERS,
+    )
+    assert created.status_code == 201
+    assert created.json()["citizen_first_name"] is None
+    assert created.json()["citizen_last_name"] is None
+
+    request_id = created.json()["id"]
+    comment = client.post(
+        f"/requests/{request_id}/comments",
+        json={"comment_text": "Anonymous follow-up"},
+        headers=CITIZEN_HEADERS,
+    )
+    assert comment.status_code == 201
+    assert comment.json()["author_display_name"] == "Anonymous"
+
+    detail = client.get(f"/requests/{request_id}")
+    assert detail.status_code == 200
+    assert detail.json()["request"]["citizen_first_name"] is None
+    assert detail.json()["request"]["citizen_last_name"] is None
 
 
 def test_status_history_written_for_each_change(db_session):

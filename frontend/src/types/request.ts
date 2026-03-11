@@ -15,8 +15,8 @@ export interface CitizenRequest {
   category_id: number;
   priority: RequestPriority;
   status: RequestStatus;
-  citizen_first_name: string;
-  citizen_last_name: string;
+  citizen_first_name: string | null;
+  citizen_last_name: string | null;
   assigned_to_staff_profile_id?: number | null;
   assigned_to_display_name?: string | null;
   resolved_at?: string | null;
@@ -57,6 +57,6 @@ export interface CreateRequestPayload {
   description: string;
   category_id: number;
   priority: RequestPriority;
-  citizen_first_name: string;
-  citizen_last_name: string;
+  citizen_first_name: string | null;
+  citizen_last_name: string | null;
 }

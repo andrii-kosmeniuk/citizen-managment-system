@@ -279,8 +279,8 @@ erDiagram
         bigint category_id FK
         string priority
         string status
-        string citizen_first_name
-        string citizen_last_name
+        string citizen_first_name nullable
+        string citizen_last_name nullable
         bigint assigned_to_staff_profile_id FK
         bigint citizen_person_id FK
         bigint created_by_person_id FK
@@ -351,8 +351,32 @@ erDiagram
 
 ## 8) Use Cases
 
-- Dieses System kann von Hausverwaltungen genutzt werden, um Probleme in Gebaeuden schnell zu identifizieren.
-- Dieses System kann auch von Behoerden genutzt werden, um kommunale Einsatzkraefte zu steuern und lokale Probleme durch Buergerfeedback besser zu verstehen.
+### Anwendungsfaelle
+- Citizen erstellt einen neuen Request:
+  - Ziel: ein kommunales Problem oder eine Anfrage mit Titel, Beschreibung, Kategorie, Prioritaet und optionalem Namen erfassen.
+  - Ergebnis: ein neuer Request wird mit Status `NEW` und einem initialen Historieneintrag gespeichert.
+- Citizen prueft bestehende Requests:
+  - Ziel: Requests nach Status, Kategorie und Prioritaet durchsuchen und filtern.
+  - Ergebnis: der Citizen kann relevante Requests finden und die Detailansicht oeffnen.
+- Citizen fuegt Folgeinformationen hinzu:
+  - Ziel: nach der Erstellung einen Kommentar mit zusaetzlichem Kontext hinterlassen.
+  - Ergebnis: der Kommentar wird als historischer Eintrag gespeichert, solange der Request noch nicht geschlossen ist.
+- Worker uebernimmt einen Request:
+  - Ziel: Verantwortung fuer einen offenen oder noch nicht zugewiesenen Request uebernehmen.
+  - Ergebnis: der Request wird einem Worker-Profil zugeordnet.
+- Worker aktualisiert den Request-Status:
+  - Ziel: den Request durch den erlaubten Lebenszyklus bewegen (`NEW` -> `IN_PROGRESS` -> `CLARIFICATION_NEEDED`/`RESOLVED` -> `CLOSED`).
+  - Ergebnis: gueltige Statuswechsel werden gespeichert, Zeitstempel aktualisiert und jede Aenderung in die Statushistorie geschrieben.
+- Worker verwaltet Kategorien:
+  - Ziel: neue Kategorien anlegen oder veraltete Kategorien deaktivieren.
+  - Ergebnis: die Klassifikation der Requests bleibt pflegbar, ohne historische Daten zu loeschen.
+
+### User Stories
+- Als Citizen moechte ich ein lokales Problem schnell melden, damit die Stadtverwaltung es bearbeiten kann.
+- Als Citizen moechte ich den Status meines Requests verfolgen, damit ich weiss, ob er bearbeitet wird.
+- Als Worker moechte ich einen Request uebernehmen, damit die Verantwortung fuer die Bearbeitung klar ist.
+- Als Worker moechte ich Kommentare und Statuswechsel dokumentieren, damit der komplette Bearbeitungsverlauf nachvollziehbar bleibt.
+- Als Worker moechte ich, dass geschlossene Requests nicht mehr veraendert werden koennen, damit abgeschlossene Faelle konsistent bleiben.
 
 ## 9) Architekturuebersicht
 

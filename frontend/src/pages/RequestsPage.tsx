@@ -15,7 +15,21 @@ interface Filters {
   priority?: RequestPriority;
 }
 
+interface CreateRequestFormState {
+  title: string;
+  description: string;
+  category_id: number;
+  priority: RequestPriority;
+  citizen_first_name: string;
+  citizen_last_name: string;
+}
+
 export function RequestsPage() {
+  const normalizeOptionalName = (value: string): string | null => {
+    const normalized = value.trim();
+    return normalized || null;
+  };
+
   const [actorRole, setActorRole] = useState<ActorRole>(() => {
     const saved = localStorage.getItem("actor_role");
     return saved === "worker" ? "worker" : "citizen";
@@ -31,7 +45,7 @@ export function RequestsPage() {
   const [newCategoryDescription, setNewCategoryDescription] = useState("");
   const [deleteCategoryId, setDeleteCategoryId] = useState(0);
 
-  const [createForm, setCreateForm] = useState<CreateRequestPayload>({
+  const [createForm, setCreateForm] = useState<CreateRequestFormState>({
     title: "",
     description: "",
     category_id: 0,
@@ -104,11 +118,12 @@ export function RequestsPage() {
     e.preventDefault();
     setError(null);
     try {
-      const created = await createRequest(actorRole, {
+      const payload: CreateRequestPayload = {
         ...createForm,
-        citizen_first_name: createForm.citizen_first_name.trim(),
-        citizen_last_name: createForm.citizen_last_name.trim(),
-      });
+        citizen_first_name: normalizeOptionalName(createForm.citizen_first_name),
+        citizen_last_name: normalizeOptionalName(createForm.citizen_last_name),
+      };
+      const created = await createRequest(actorRole, payload);
       await loadRequests(filters);
       setSelectedRequestId(created.id);
       setCreateForm((prev) => ({
@@ -184,13 +199,13 @@ export function RequestsPage() {
               data-testid="create-citizen-first-name"
               value={createForm.citizen_first_name}
               onChange={(e) => setCreateForm((prev) => ({ ...prev, citizen_first_name: e.target.value }))}
-              placeholder="Vorname"
+              placeholder="Vorname (optional)"
             />
             <input
               data-testid="create-citizen-last-name"
               value={createForm.citizen_last_name}
               onChange={(e) => setCreateForm((prev) => ({ ...prev, citizen_last_name: e.target.value }))}
-              placeholder="Nachname"
+              placeholder="Nachname (optional)"
             />
             <textarea
               data-testid="create-description"

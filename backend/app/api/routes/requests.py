@@ -30,10 +30,25 @@ router = APIRouter(prefix="/requests", tags=["requests"])
 logger = get_logger(__name__)
 
 
+def _normalize_optional_name(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
+def _citizen_display_name(first_name: str | None, last_name: str | None) -> str:
+    display_name = " ".join(part for part in [first_name, last_name] if part)
+    return display_name or "Anonymous"
+
+
 def _require_staff_profile(db: Session, staff_profile_id: int) -> StaffProfile:
     staff_profile = db.get(StaffProfile, staff_profile_id)
     if not staff_profile:
-        raise HTTPException(status_code=404, detail=f"Mitarbeiterprofil mit ID {staff_profile_id} wurde nicht gefunden.")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Mitarbeiterprofil mit ID {staff_profile_id} wurde nicht gefunden.",
+        )
     return staff_profile
 
 
@@ -99,18 +114,16 @@ def create_request(
 
     title = payload.title.strip()
     description = payload.description.strip()
-    citizen_first_name = payload.citizen_first_name.strip()
-    citizen_last_name = payload.citizen_last_name.strip()
+    citizen_first_name = _normalize_optional_name(payload.citizen_first_name)
+    citizen_last_name = _normalize_optional_name(payload.citizen_last_name)
     if not title:
         raise HTTPException(status_code=422, detail="Der Titel darf nicht leer sein.")
     if not description:
         raise HTTPException(status_code=422, detail="Die Beschreibung darf nicht leer sein.")
-    if not citizen_first_name:
-        raise HTTPException(status_code=422, detail="Der Vorname darf nicht leer sein.")
-    if not citizen_last_name:
-        raise HTTPException(status_code=422, detail="Der Nachname darf nicht leer sein.")
 
-    citizen_person = ensure_citizen_person(db, citizen_first_name, citizen_last_name)
+    citizen_person = None
+    if citizen_first_name and citizen_last_name:
+        citizen_person = ensure_citizen_person(db, citizen_first_name, citizen_last_name)
 
     request = CitizenRequest(
         title=title,
@@ -119,7 +132,7 @@ def create_request(
         priority=payload.priority,
         citizen_first_name=citizen_first_name,
         citizen_last_name=citizen_last_name,
-        citizen_person_id=citizen_person.id,
+        citizen_person_id=citizen_person.id if citizen_person else None,
         created_by_person_id=creator.person_id,
         status=RequestStatus.NEW,
     )
@@ -269,7 +282,10 @@ def add_comment(
 
     if actor_role == "worker":
         if payload.author_staff_profile_id is None:
-            raise HTTPException(status_code=422, detail="Fuer Mitarbeiterkommentare ist author_staff_profile_id erforderlich.")
+            raise HTTPException(
+                status_code=422,
+                detail="Fuer Mitarbeiterkommentare ist author_staff_profile_id erforderlich.",
+            )
         author = _require_staff_profile(db, payload.author_staff_profile_id)
         author_staff_profile_id = author.id
         author_person_id = author.person_id
@@ -279,7 +295,10 @@ def add_comment(
         author_staff_profile_id = None
         author_person_id = req.citizen_person_id
         author_role = "CITIZEN"
-        author_display_name = f"{req.citizen_first_name} {req.citizen_last_name}"
+        author_display_name = _citizen_display_name(
+            req.citizen_first_name,
+            req.citizen_last_name,
+        )
 
     comment = RequestComment(
         request_id=request_id,

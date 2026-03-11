@@ -22,6 +22,10 @@ const PRIORITY_LABELS: Record<RequestPriority, string> = {
   KRITISCH: "KRITISCH",
 };
 
+function getCitizenDisplayName(firstName: string | null, lastName: string | null): string {
+  return [firstName, lastName].filter(Boolean).join(" ") || "Anonymous";
+}
+
 export function RequestList({ requests, selectedRequestId, onSelect }: Props) {
   if (requests.length === 0) {
     return <p>Keine Anliegen gefunden.</p>;
@@ -52,7 +56,7 @@ export function RequestList({ requests, selectedRequestId, onSelect }: Props) {
             <td>{item.id}</td>
             <td>{item.title}</td>
             <td>
-              {item.citizen_first_name} {item.citizen_last_name}
+              {getCitizenDisplayName(item.citizen_first_name, item.citizen_last_name)}
             </td>
             <td>{STATUS_LABELS[item.status]}</td>
             <td>{PRIORITY_LABELS[item.priority]}</td>

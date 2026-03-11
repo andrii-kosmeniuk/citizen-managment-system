@@ -112,8 +112,8 @@ CREATE TABLE citizen_request (
   category_id                  BIGINT NOT NULL,
   priority                     request_priority NOT NULL,
   status                       request_status NOT NULL DEFAULT 'NEW',
-  citizen_first_name           VARCHAR(50) NOT NULL,
-  citizen_last_name            VARCHAR(50) NOT NULL,
+  citizen_first_name           VARCHAR(50),
+  citizen_last_name            VARCHAR(50),
   citizen_person_id            BIGINT,
   created_by_person_id         BIGINT,
   created_at                   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -135,8 +135,6 @@ CREATE TABLE citizen_request (
     FOREIGN KEY (assigned_to_staff_profile_id) REFERENCES staff_profile(id),
   CONSTRAINT chk_title_not_blank CHECK (LENGTH(BTRIM(title)) > 0),
   CONSTRAINT chk_desc_not_blank CHECK (LENGTH(BTRIM(description)) > 0),
-  CONSTRAINT chk_citizen_first_name_not_blank CHECK (LENGTH(BTRIM(citizen_first_name)) > 0),
-  CONSTRAINT chk_citizen_last_name_not_blank CHECK (LENGTH(BTRIM(citizen_last_name)) > 0),
   CONSTRAINT chk_resolved_at_for_resolved_or_closed CHECK (
     (status IN ('RESOLVED', 'CLOSED') AND resolved_at IS NOT NULL)
     OR

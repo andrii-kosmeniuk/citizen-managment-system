@@ -1,10 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
+import * as apiClient from "../../api/client";
 import { RequestsPage } from "../RequestsPage";
 import type { RequestCommentItem } from "../../types/request";
 
 vi.mock("../../api/client", () => {
   let currentStatus = "NEW";
+  let currentCitizenFirstName: string | null = "Jane";
+  let currentCitizenLastName: string | null = "Citizen";
   let comments: RequestCommentItem[] = [
     {
       id: 1,
@@ -41,8 +44,8 @@ vi.mock("../../api/client", () => {
         category_id: 1,
         priority: "HOCH",
         status: currentStatus,
-        citizen_first_name: "Jane",
-        citizen_last_name: "Citizen",
+        citizen_first_name: currentCitizenFirstName,
+        citizen_last_name: currentCitizenLastName,
         assigned_to_staff_profile_id: 2,
         created_at: "2026-01-01T00:00:00Z",
         updated_at: "2026-01-01T00:00:00Z",
@@ -56,8 +59,8 @@ vi.mock("../../api/client", () => {
         category_id: 1,
         priority: "HOCH",
         status: currentStatus,
-        citizen_first_name: "Jane",
-        citizen_last_name: "Citizen",
+        citizen_first_name: currentCitizenFirstName,
+        citizen_last_name: currentCitizenLastName,
         assigned_to_staff_profile_id: 2,
         created_at: "2026-01-01T00:00:00Z",
         updated_at: "2026-01-01T00:00:00Z",
@@ -102,11 +105,17 @@ vi.mock("../../api/client", () => {
       ];
     }),
     createCategory: vi.fn().mockResolvedValue({ id: 5, name: "Other", is_active: true }),
+    __setCitizenName: (firstName: string | null, lastName: string | null) => {
+      currentCitizenFirstName = firstName;
+      currentCitizenLastName = lastName;
+    },
   };
 });
 
 beforeEach(() => {
   localStorage.clear();
+  (apiClient as typeof apiClient & { __setCitizenName: (firstName: string | null, lastName: string | null) => void })
+    .__setCitizenName("Jane", "Citizen");
 });
 
 test("basic dashboard user flow works", async () => {
@@ -164,4 +173,13 @@ test("worker role cannot see create request form", async () => {
 
   await waitFor(() => expect(screen.getByTestId("create-request-disabled")).toBeInTheDocument());
   expect(screen.queryByTestId("create-submit")).not.toBeInTheDocument();
+});
+
+test("detail page shows anonymous when citizen name is missing", async () => {
+  (apiClient as typeof apiClient & { __setCitizenName: (firstName: string | null, lastName: string | null) => void })
+    .__setCitizenName(null, null);
+
+  render(<RequestsPage />);
+
+  await waitFor(() => expect(screen.getByTestId("request-detail")).toHaveTextContent("Buerger: Anonymous"));
 });

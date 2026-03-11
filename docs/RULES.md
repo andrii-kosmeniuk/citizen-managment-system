@@ -29,7 +29,7 @@ Each request must include:
 - Priority
 - Creation date
 - Status
-- Citizen first and last name
+- Optional citizen first and last name
 
 ### 2) Category Management
 - Categories must be manageable by workers.
