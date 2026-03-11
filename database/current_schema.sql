@@ -1,4 +1,4 @@
--- Current canonical database schema after db_version_005.
+-- Current canonical database schema after db_version_006.
 -- This file is a fresh-install snapshot of the final schema state.
 -- Seed/reference data stays in database/seed/.
 
