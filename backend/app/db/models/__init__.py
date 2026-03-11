@@ -7,7 +7,6 @@ from app.db.models.request import CitizenRequest
 from app.db.models.role import Role
 from app.db.models.staff_profile import StaffProfile
 from app.db.models.status_history import RequestStatusHistory
-from app.db.models.user import StaffUser
 
 __all__ = [
     "Category",
@@ -19,5 +18,4 @@ __all__ = [
     "Role",
     "StaffProfile",
     "RequestStatusHistory",
-    "StaffUser",
 ]

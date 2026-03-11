@@ -9,7 +9,7 @@ vi.mock("../../api/client", () => {
     {
       id: 1,
       request_id: 1,
-      author_user_id: 1,
+      author_staff_profile_id: 1,
       author_role: "WORKER",
       author_display_name: "Worker One",
       comment_text: "Initial",
@@ -19,12 +19,16 @@ vi.mock("../../api/client", () => {
 
   return {
     fetchCategories: vi.fn().mockResolvedValue([{ id: 1, name: "Infrastructure", is_active: true }]),
-    fetchStaffUsers: vi.fn().mockResolvedValue([
+    fetchStaffProfiles: vi.fn().mockResolvedValue([
       {
         id: 1,
+        person_id: 10,
         first_name: "Alex",
         last_name: "Don",
+        email: "alex@example.com",
+        employee_code: "EMP-ALEX",
         is_active: true,
+        is_available: true,
         created_at: "2026-01-01T00:00:00Z",
         updated_at: "2026-01-01T00:00:00Z",
       },
@@ -39,7 +43,7 @@ vi.mock("../../api/client", () => {
         status: currentStatus,
         citizen_first_name: "Jane",
         citizen_last_name: "Citizen",
-        assigned_to_user_id: 2,
+        assigned_to_staff_profile_id: 2,
         created_at: "2026-01-01T00:00:00Z",
         updated_at: "2026-01-01T00:00:00Z",
       },
@@ -54,7 +58,7 @@ vi.mock("../../api/client", () => {
         status: currentStatus,
         citizen_first_name: "Jane",
         citizen_last_name: "Citizen",
-        assigned_to_user_id: 2,
+        assigned_to_staff_profile_id: 2,
         created_at: "2026-01-01T00:00:00Z",
         updated_at: "2026-01-01T00:00:00Z",
       },
@@ -65,7 +69,7 @@ vi.mock("../../api/client", () => {
           request_id: 1,
           from_status: null,
           to_status: "NEW",
-          changed_by_user_id: 1,
+          changed_by_staff_profile_id: 1,
           change_note: "Initial",
           changed_at: "2026-01-01T00:00:00Z",
         },
@@ -89,7 +93,7 @@ vi.mock("../../api/client", () => {
         {
           id: comments.length + 1,
           request_id: 1,
-          author_user_id: null,
+          author_staff_profile_id: null,
           author_role: "CITIZEN",
           author_display_name: "Jane Citizen",
           comment_text: "new comment",

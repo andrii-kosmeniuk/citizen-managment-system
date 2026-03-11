@@ -24,13 +24,13 @@ class CitizenRequest(Base):
     created_by_person_id: Mapped[int | None] = mapped_column(ForeignKey("person.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    assigned_to_user_id: Mapped[int | None] = mapped_column(ForeignKey("staff_user.id"), nullable=True)
+    assigned_to_staff_profile_id: Mapped[int | None] = mapped_column(ForeignKey("staff_profile.id"), nullable=True)
     assigned_to_person_id: Mapped[int | None] = mapped_column(ForeignKey("person.id"), nullable=True)
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     category = relationship("Category", back_populates="requests")
-    assignee = relationship("StaffUser", back_populates="assigned_requests")
+    assignee = relationship("StaffProfile", back_populates="assigned_requests")
     comments = relationship("RequestComment", back_populates="request", cascade="all, delete-orphan")
     status_changes = relationship("RequestStatusHistory", back_populates="request", cascade="all, delete-orphan")
 
@@ -38,4 +38,4 @@ class CitizenRequest(Base):
     def assigned_to_display_name(self) -> str | None:
         if self.assignee is None:
             return None
-        return f"{self.assignee.first_name} {self.assignee.last_name}"
+        return self.assignee.display_name

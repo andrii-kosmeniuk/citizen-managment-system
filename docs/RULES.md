@@ -84,7 +84,7 @@ Must provide:
 - [x] DB container starts and is reachable.
 
 ### Phase 1: Database Core
-- [x] Implement base schema (`staff_user`, `category`, `citizen_request`, `request_comment`, `request_status_history`).
+- [x] Implement base schema (`person`, `staff_profile`, `category`, `citizen_request`, `request_comment`, `request_status_history`).
 - [x] Add constraints, indexes, status transition triggers, closed-request protections.
 - [x] Add dev reset script and DB validation script.
 

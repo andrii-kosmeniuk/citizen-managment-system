@@ -2,12 +2,12 @@ import { useState } from "react";
 
 interface Props {
   role: "citizen" | "worker";
-  onSubmit: (authorUserId: number | undefined, commentText: string) => Promise<void>;
+  onSubmit: (authorStaffProfileId: number | undefined, commentText: string) => Promise<void>;
   disabled?: boolean;
 }
 
 export function CommentBox({ role, onSubmit, disabled }: Props) {
-  const [authorUserId, setAuthorUserId] = useState(1);
+  const [authorStaffProfileId, setAuthorStaffProfileId] = useState(1);
   const [commentText, setCommentText] = useState("");
   const isWorker = role === "worker";
 
@@ -15,7 +15,7 @@ export function CommentBox({ role, onSubmit, disabled }: Props) {
     <form
       onSubmit={async (e) => {
         e.preventDefault();
-        await onSubmit(isWorker ? authorUserId : undefined, commentText);
+        await onSubmit(isWorker ? authorStaffProfileId : undefined, commentText);
         setCommentText("");
       }}
       style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}
@@ -25,9 +25,9 @@ export function CommentBox({ role, onSubmit, disabled }: Props) {
           data-testid="comment-author-id"
           type="number"
           min={1}
-          value={authorUserId}
-          onChange={(e) => setAuthorUserId(Number(e.target.value))}
-          placeholder="Autor Mitarbeiter-ID"
+          value={authorStaffProfileId}
+          onChange={(e) => setAuthorStaffProfileId(Number(e.target.value))}
+          placeholder="Autor Mitarbeiterprofil-ID"
         />
       )}
       <input

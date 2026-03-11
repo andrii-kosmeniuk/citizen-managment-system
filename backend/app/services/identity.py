@@ -5,8 +5,6 @@ from app.db.models.citizen_profile import CitizenProfile
 from app.db.models.person import Person
 from app.db.models.person_role import PersonRole
 from app.db.models.role import Role
-from app.db.models.staff_profile import StaffProfile
-from app.db.models.user import StaffUser
 
 
 def _ensure_role(db: Session, code: str) -> Role:
@@ -25,36 +23,6 @@ def _ensure_person_role(db: Session, person_id: int, role_code: str) -> None:
     )
     if existing is None:
         db.add(PersonRole(person_id=person_id, role_id=role.id))
-
-
-def ensure_staff_person(db: Session, user: StaffUser) -> Person:
-    person: Person | None = None
-    if user.person_id is not None:
-        person = db.get(Person, user.person_id)
-    if person is None:
-        person = Person(
-            first_name=user.first_name.strip(),
-            last_name=user.last_name.strip(),
-            email=user.email.strip().lower(),
-            is_active=user.is_active,
-        )
-        db.add(person)
-        db.flush()
-        user.person_id = person.id
-
-    staff_profile = db.scalar(select(StaffProfile).where(StaffProfile.person_id == person.id))
-    if staff_profile is None:
-        db.add(
-            StaffProfile(
-                person_id=person.id,
-                employee_code=f"EMP-{user.id}",
-                is_available=user.is_active,
-                legacy_staff_user_id=user.id,
-            )
-        )
-
-    _ensure_person_role(db, person.id, "WORKER")
-    return person
 
 
 def ensure_citizen_person(db: Session, first_name: str, last_name: str) -> Person:

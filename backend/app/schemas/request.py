@@ -7,7 +7,7 @@ from app.schemas.enums import RequestPriority, RequestStatus
 
 
 class RequestCreate(BaseModel):
-    creator_user_id: int | None = None
+    creator_staff_profile_id: int | None = None
     title: str
     description: str
     category_id: int
@@ -17,13 +17,13 @@ class RequestCreate(BaseModel):
 
 
 class RequestStatusUpdate(BaseModel):
-    actor_user_id: int
+    actor_staff_profile_id: int
     to_status: RequestStatus
     change_note: str | None = None
 
 
 class RequestClaim(BaseModel):
-    actor_user_id: int
+    actor_staff_profile_id: int
 
 
 class RequestRead(BaseModel):
@@ -37,7 +37,7 @@ class RequestRead(BaseModel):
     status: RequestStatus
     citizen_first_name: str
     citizen_last_name: str
-    assigned_to_user_id: int | None
+    assigned_to_staff_profile_id: int | None
     assigned_to_display_name: str | None = None
     resolved_at: datetime | None
     closed_at: datetime | None
@@ -52,7 +52,7 @@ class RequestStatusHistoryRead(BaseModel):
     request_id: int
     from_status: RequestStatus | None
     to_status: RequestStatus
-    changed_by_user_id: int
+    changed_by_staff_profile_id: int
     changed_by_display_name: str | None = None
     change_note: str | None
     changed_at: datetime

@@ -8,7 +8,7 @@ Es gibt zwei Hauptrollen: "Citizen" und "Worker":
 - "Citizen" kann Anliegen erstellen, um Hilfe bitten und Kommentare zum Problem schreiben.
 - "Worker" kann Bürgeranliegen ansehen, Anliegen zuweisen, den Status aktualisieren und Kommentare hinzufügen.
 
-Das Ziel dieses Projekts ist es, eine saubere Projektarchitektur und ein skalierbares Datenbanksystem mit Backend- und einfacher UI-Integration zu demonstrieren.
+Das Ziel dieses Projekts ist es, eine saubere Projektarchitektur und ein skalierbares Datenbanksystem mit Backend- und einfacher UI-Integration zu demonstrieren. Ebenso soll die Effizienz der Entwicklung mit KI-Agenten gezeigt werden.
 
 ## 2) Schnellstart (Docker)
 
@@ -38,7 +38,13 @@ Im Browser öffnen:
 docker compose down
 ```
 
-### 2.4) Zusätzliche Prüfungen (optional)
+### 2.4) Stoppen & DB zurücksetzen
+
+```bash
+docker compose down -v
+```
+
+### 2.5) Zusätzliche Prüfungen (optional)
 
 ```bash
 ./scripts/check_all.sh --fast   # schnelle lokale Prüfungen
@@ -216,7 +222,6 @@ erDiagram
         string department
         string position_title
         boolean is_available
-        bigint legacy_staff_user_id FK
         datetime created_at
         datetime updated_at
     }
@@ -234,17 +239,6 @@ erDiagram
         bigint person_id FK
         bigint role_id FK
         datetime assigned_at
-    }
-
-    STAFF_USER {
-        bigint id PK
-        string first_name
-        string last_name
-        string email
-        boolean is_active
-        bigint person_id FK
-        datetime created_at
-        datetime updated_at
     }
 
     CATEGORY {
@@ -265,7 +259,7 @@ erDiagram
         string status
         string citizen_first_name
         string citizen_last_name
-        bigint assigned_to_user_id FK
+        bigint assigned_to_staff_profile_id FK
         bigint citizen_person_id FK
         bigint created_by_person_id FK
         bigint assigned_to_person_id FK
@@ -278,7 +272,7 @@ erDiagram
     REQUEST_COMMENT {
         bigint id PK
         bigint request_id FK
-        bigint author_user_id FK
+        bigint author_staff_profile_id FK
         bigint author_person_id FK
         string author_role
         string author_display_name
@@ -291,7 +285,7 @@ erDiagram
         bigint request_id FK
         string from_status
         string to_status
-        bigint changed_by_user_id FK
+        bigint changed_by_staff_profile_id FK
         bigint changed_by_person_id FK
         string change_note
         datetime changed_at
@@ -302,21 +296,18 @@ erDiagram
     PERSON ||--o{ PERSON_ROLE : "zugeordnet"
     ROLE ||--o{ PERSON_ROLE : "zugeordnet"
 
-    PERSON ||--o{ STAFF_USER : "verknuepft"
-    STAFF_USER ||--o{ STAFF_PROFILE : "legacy_link"
-
     CATEGORY ||--o{ CITIZEN_REQUEST : "enthaelt"
-    STAFF_USER ||--o{ CITIZEN_REQUEST : "assigned_legacy"
+    STAFF_PROFILE ||--o{ CITIZEN_REQUEST : "zugewiesen"
     PERSON ||--o{ CITIZEN_REQUEST : "citizen"
     PERSON ||--o{ CITIZEN_REQUEST : "created_by"
     PERSON ||--o{ CITIZEN_REQUEST : "assigned_to"
 
     CITIZEN_REQUEST ||--o{ REQUEST_COMMENT : "hat"
-    STAFF_USER ||--o{ REQUEST_COMMENT : "author_legacy"
+    STAFF_PROFILE ||--o{ REQUEST_COMMENT : "author"
     PERSON ||--o{ REQUEST_COMMENT : "author"
 
     CITIZEN_REQUEST ||--o{ REQUEST_STATUS_HISTORY : "hat"
-    STAFF_USER ||--o{ REQUEST_STATUS_HISTORY : "changed_legacy"
+    STAFF_PROFILE ||--o{ REQUEST_STATUS_HISTORY : "changed_by"
     PERSON ||--o{ REQUEST_STATUS_HISTORY : "changed_by"
 ```
 

@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { RequestStatus } from "../types/request";
 
 interface Props {
-  onSubmit: (status: RequestStatus, actorUserId: number, changeNote?: string) => Promise<void>;
+  onSubmit: (status: RequestStatus, actorStaffProfileId: number, changeNote?: string) => Promise<void>;
   disabled?: boolean;
 }
 
@@ -17,7 +17,7 @@ const STATUS_LABELS: Record<RequestStatus, string> = {
 };
 
 export function StatusChanger({ onSubmit, disabled }: Props) {
-  const [actorUserId, setActorUserId] = useState(1);
+  const [actorStaffProfileId, setActorStaffProfileId] = useState(1);
   const [status, setStatus] = useState<RequestStatus>("IN_PROGRESS");
   const [changeNote, setChangeNote] = useState("");
 
@@ -25,7 +25,7 @@ export function StatusChanger({ onSubmit, disabled }: Props) {
     <form
       onSubmit={async (e) => {
         e.preventDefault();
-        await onSubmit(status, actorUserId, changeNote);
+        await onSubmit(status, actorStaffProfileId, changeNote);
         setChangeNote("");
       }}
       style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}
@@ -34,9 +34,9 @@ export function StatusChanger({ onSubmit, disabled }: Props) {
         data-testid="status-actor-id"
         type="number"
         min={1}
-        value={actorUserId}
-        onChange={(e) => setActorUserId(Number(e.target.value))}
-        placeholder="Mitarbeiter-ID"
+        value={actorStaffProfileId}
+        onChange={(e) => setActorStaffProfileId(Number(e.target.value))}
+        placeholder="Mitarbeiterprofil-ID"
       />
       <select data-testid="status-next" value={status} onChange={(e) => setStatus(e.target.value as RequestStatus)}>
         {STATUSES.map((nextStatus) => (

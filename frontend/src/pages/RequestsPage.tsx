@@ -1,12 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 
-import { createCategory, createRequest, deleteCategory, fetchCategories, fetchRequests, fetchStaffUsers } from "../api/client";
+import { createCategory, createRequest, deleteCategory, fetchCategories, fetchRequests, fetchStaffProfiles } from "../api/client";
 import { RequestFilters } from "../components/RequestFilters";
 import { RequestList } from "../components/RequestList";
-import { StaffUserList } from "../components/StaffUserList";
+import { StaffProfileList } from "../components/StaffProfileList";
 import { RequestDetailPage } from "./RequestDetailPage";
 import type { Category } from "../types/category";
-import type { StaffUser } from "../types/staff_user";
+import type { StaffProfile } from "../types/staff_profile";
 import type { ActorRole, CitizenRequest, CreateRequestPayload, RequestPriority, RequestStatus } from "../types/request";
 
 interface Filters {
@@ -22,7 +22,7 @@ export function RequestsPage() {
   });
   const [requests, setRequests] = useState<CitizenRequest[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
+  const [staffProfiles, setStaffProfiles] = useState<StaffProfile[]>([]);
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
   const [filters, setFilters] = useState<Filters>({});
   const [loading, setLoading] = useState(true);
@@ -74,13 +74,13 @@ export function RequestsPage() {
     }
   };
 
-  const loadStaffUsers = async (role: ActorRole = actorRole) => {
+  const loadStaffProfiles = async (role: ActorRole = actorRole) => {
     if (role !== "worker") {
-      setStaffUsers([]);
+      setStaffProfiles([]);
       return;
     }
-    const users = await fetchStaffUsers(role);
-    setStaffUsers(users);
+    const profiles = await fetchStaffProfiles(role);
+    setStaffProfiles(profiles);
   };
 
   useEffect(() => {
@@ -92,7 +92,7 @@ export function RequestsPage() {
       try {
         await loadCategories();
         await loadRequests({}, actorRole);
-        await loadStaffUsers(actorRole);
+        await loadStaffProfiles(actorRole);
       } catch (err) {
         setError((err as Error).message);
         setLoading(false);
@@ -305,8 +305,8 @@ export function RequestsPage() {
           <RequestList requests={requests} selectedRequestId={selectedRequestId} onSelect={setSelectedRequestId} />
           {isWorker && (
             <div style={{ marginTop: 16 }}>
-              <h3>Mitarbeiter</h3>
-              <StaffUserList staffUsers={staffUsers} />
+              <h3>Mitarbeiterprofile</h3>
+              <StaffProfileList staffProfiles={staffProfiles} />
             </div>
           )}
         </section>

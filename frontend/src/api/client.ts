@@ -1,5 +1,5 @@
 import type { Category } from "../types/category";
-import type { StaffUser } from "../types/staff_user";
+import type { StaffProfile } from "../types/staff_profile";
 import type {
   ActorRole,
   CitizenRequest,
@@ -77,35 +77,39 @@ export async function createRequest(role: ActorRole, payload: CreateRequestPaylo
   });
 }
 
-export async function claimRequest(role: ActorRole, requestId: number, actorUserId: number): Promise<CitizenRequest> {
+export async function claimRequest(role: ActorRole, requestId: number, actorStaffProfileId: number): Promise<CitizenRequest> {
   return fetchJson<CitizenRequest>(`${API_BASE}/requests/${requestId}/claim`, role, {
     method: "POST",
-    body: JSON.stringify({ actor_user_id: actorUserId }),
+    body: JSON.stringify({ actor_staff_profile_id: actorStaffProfileId }),
   });
 }
 
 export async function updateRequestStatus(
   role: ActorRole,
   requestId: number,
-  actorUserId: number,
+  actorStaffProfileId: number,
   toStatus: RequestStatus,
   changeNote?: string,
 ): Promise<CitizenRequest> {
   return fetchJson<CitizenRequest>(`${API_BASE}/requests/${requestId}/status`, role, {
     method: "PATCH",
-    body: JSON.stringify({ actor_user_id: actorUserId, to_status: toStatus, change_note: changeNote || null }),
+    body: JSON.stringify({
+      actor_staff_profile_id: actorStaffProfileId,
+      to_status: toStatus,
+      change_note: changeNote || null,
+    }),
   });
 }
 
 export async function addRequestComment(
   role: ActorRole,
   requestId: number,
-  authorUserId: number | undefined,
+  authorStaffProfileId: number | undefined,
   commentText: string,
 ): Promise<void> {
   const body: Record<string, unknown> = { comment_text: commentText };
-  if (typeof authorUserId === "number") {
-    body.author_user_id = authorUserId;
+  if (typeof authorStaffProfileId === "number") {
+    body.author_staff_profile_id = authorStaffProfileId;
   }
   await fetchJson(`${API_BASE}/requests/${requestId}/comments`, role, {
     method: "POST",
@@ -126,6 +130,6 @@ export async function deleteCategory(role: ActorRole, categoryId: number): Promi
   });
 }
 
-export async function fetchStaffUsers(role: ActorRole): Promise<StaffUser[]> {
-  return fetchJson<StaffUser[]>(`${API_BASE}/staff-users`, role);
+export async function fetchStaffProfiles(role: ActorRole): Promise<StaffProfile[]> {
+  return fetchJson<StaffProfile[]>(`${API_BASE}/staff-profiles`, role);
 }

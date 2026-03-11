@@ -30,7 +30,7 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
   const [detail, setDetail] = useState<RequestDetailResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [claimActorUserId, setClaimActorUserId] = useState(1);
+  const [claimActorStaffProfileId, setClaimActorStaffProfileId] = useState(1);
 
   const loadDetail = async () => {
     if (!requestId) {
@@ -75,7 +75,7 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
   const handleClaim = async () => {
     setError(null);
     try {
-      await claimRequest(actorRole, requestId, claimActorUserId);
+      await claimRequest(actorRole, requestId, claimActorStaffProfileId);
       await loadDetail();
       await onDataChanged();
     } catch (err) {
@@ -83,10 +83,10 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
     }
   };
 
-  const handleStatusSubmit = async (nextStatus: RequestStatus, actorUserId: number, changeNote?: string) => {
+  const handleStatusSubmit = async (nextStatus: RequestStatus, actorStaffProfileId: number, changeNote?: string) => {
     setError(null);
     try {
-      await updateRequestStatus(actorRole, requestId, actorUserId, nextStatus, changeNote);
+      await updateRequestStatus(actorRole, requestId, actorStaffProfileId, nextStatus, changeNote);
       await loadDetail();
       await onDataChanged();
     } catch (err) {
@@ -95,10 +95,10 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
     }
   };
 
-  const handleCommentSubmit = async (authorUserId: number | undefined, commentText: string) => {
+  const handleCommentSubmit = async (authorStaffProfileId: number | undefined, commentText: string) => {
     setError(null);
     try {
-      await addRequestComment(actorRole, requestId, authorUserId, commentText);
+      await addRequestComment(actorRole, requestId, authorStaffProfileId, commentText);
       await loadDetail();
     } catch (err) {
       setError((err as Error).message);
@@ -123,8 +123,8 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
       </p>
       <p>
         <strong>Zugewiesen an:</strong>{" "}
-        {detail.request.assigned_to_user_id
-          ? `${detail.request.assigned_to_user_id}(${detail.request.assigned_to_display_name ?? "Unbekannter Mitarbeiter"})`
+        {detail.request.assigned_to_staff_profile_id
+          ? `${detail.request.assigned_to_staff_profile_id} (${detail.request.assigned_to_display_name ?? "Unbekannter Mitarbeiter"})`
           : "Nicht zugewiesen"}
       </p>
 
@@ -135,8 +135,8 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
               data-testid="claim-actor-id"
               type="number"
               min={1}
-              value={claimActorUserId}
-              onChange={(e) => setClaimActorUserId(Number(e.target.value))}
+              value={claimActorStaffProfileId}
+              onChange={(e) => setClaimActorStaffProfileId(Number(e.target.value))}
             />
             <button data-testid="claim-submit" onClick={handleClaim} disabled={isClosed}>
               Anliegen uebernehmen
@@ -171,7 +171,7 @@ export function RequestDetailPage({ actorRole, requestId, onDataChanged }: Props
             <li key={history.id}>
               [{new Date(history.changed_at).toLocaleString()}]{" "}
               {(history.from_status && STATUS_LABELS[history.from_status]) || "KEINER"} -&gt; {STATUS_LABELS[history.to_status]} (
-              {history.changed_by_user_id}, {history.changed_by_display_name ?? "Unbekannter Mitarbeiter"})
+              {history.changed_by_staff_profile_id}, {history.changed_by_display_name ?? "Unbekannter Mitarbeiter"})
               {history.change_note ? `: ${history.change_note}` : ""}
             </li>
           ))}

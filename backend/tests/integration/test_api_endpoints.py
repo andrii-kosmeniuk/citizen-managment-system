@@ -1,17 +1,27 @@
 from sqlalchemy import text
 
-from app.db.models.user import StaffUser
+from app.db.models.person import Person
+from app.db.models.staff_profile import StaffProfile
 
 WORKER_HEADERS = {"X-Actor-Role": "worker"}
 CITIZEN_HEADERS = {"X-Actor-Role": "citizen"}
 
 
-def _create_staff(db_session, email: str, first_name: str = "John", last_name: str = "Doe") -> StaffUser:
-    user = StaffUser(first_name=first_name, last_name=last_name, email=email)
-    db_session.add(user)
+def _create_staff_profile(
+    db_session,
+    email: str,
+    first_name: str = "John",
+    last_name: str = "Doe",
+) -> StaffProfile:
+    person = Person(first_name=first_name, last_name=last_name, email=email, is_active=True)
+    db_session.add(person)
+    db_session.flush()
+
+    profile = StaffProfile(person_id=person.id, employee_code=f"EMP-{first_name.upper()}-{last_name.upper()}", is_available=True)
+    db_session.add(profile)
     db_session.commit()
-    db_session.refresh(user)
-    return user
+    db_session.refresh(profile)
+    return profile
 
 
 def test_health(client):
@@ -20,17 +30,17 @@ def test_health(client):
     assert response.json() == {"status": "ok"}
 
 
-def test_staff_users_list_requires_worker(client, db_session):
-    user = _create_staff(db_session, "worker.list@example.com", "Worker", "Listed")
+def test_staff_profiles_list_requires_worker(client, db_session):
+    profile = _create_staff_profile(db_session, "worker.list@example.com", "Worker", "Listed")
 
-    forbidden = client.get("/staff-users", headers=CITIZEN_HEADERS)
+    forbidden = client.get("/staff-profiles", headers=CITIZEN_HEADERS)
     assert forbidden.status_code == 403
 
-    allowed = client.get("/staff-users", headers=WORKER_HEADERS)
+    allowed = client.get("/staff-profiles", headers=WORKER_HEADERS)
     assert allowed.status_code == 200
     payload = allowed.json()
     assert any(
-        item["id"] == user.id and item["first_name"] == "Worker" and item["last_name"] == "Listed"
+        item["id"] == profile.id and item["first_name"] == "Worker" and item["last_name"] == "Listed"
         for item in payload
     )
 
@@ -71,8 +81,8 @@ def test_categories_crud_and_active_filter(client):
 
 
 def test_requests_end_to_end_all_actions(client, db_session):
-    creator = _create_staff(db_session, "creator@example.com", "Create", "User")
-    actor = _create_staff(db_session, "actor@example.com", "Actor", "User")
+    creator = _create_staff_profile(db_session, "creator@example.com", "Create", "User")
+    actor = _create_staff_profile(db_session, "actor@example.com", "Actor", "User")
 
     categories = client.get("/categories")
     assert categories.status_code == 200
@@ -81,7 +91,7 @@ def test_requests_end_to_end_all_actions(client, db_session):
     created = client.post(
         "/requests",
         json={
-            "creator_user_id": creator.id,
+            "creator_staff_profile_id": creator.id,
             "title": "Damaged sign",
             "description": "Stop sign damaged",
             "category_id": category_id,
@@ -107,13 +117,17 @@ def test_requests_end_to_end_all_actions(client, db_session):
     assert detail.json()["request"]["id"] == request_id
     assert len(detail.json()["status_history"]) == 1
 
-    claimed = client.post(f"/requests/{request_id}/claim", json={"actor_user_id": actor.id}, headers=WORKER_HEADERS)
+    claimed = client.post(
+        f"/requests/{request_id}/claim",
+        json={"actor_staff_profile_id": actor.id},
+        headers=WORKER_HEADERS,
+    )
     assert claimed.status_code == 200
-    assert claimed.json()["assigned_to_user_id"] == actor.id
+    assert claimed.json()["assigned_to_staff_profile_id"] == actor.id
 
     in_progress = client.patch(
         f"/requests/{request_id}/status",
-        json={"actor_user_id": actor.id, "to_status": "IN_PROGRESS", "change_note": "Start processing"},
+        json={"actor_staff_profile_id": actor.id, "to_status": "IN_PROGRESS", "change_note": "Start processing"},
         headers=WORKER_HEADERS,
     )
     assert in_progress.status_code == 200
@@ -121,13 +135,14 @@ def test_requests_end_to_end_all_actions(client, db_session):
 
     comment = client.post(
         f"/requests/{request_id}/comments",
-        json={"author_user_id": actor.id, "comment_text": "Inspected location"},
+        json={"author_staff_profile_id": actor.id, "comment_text": "Inspected location"},
+        headers=WORKER_HEADERS,
     )
     assert comment.status_code == 201
 
     resolved = client.patch(
         f"/requests/{request_id}/status",
-        json={"actor_user_id": actor.id, "to_status": "RESOLVED", "change_note": "Fixed"},
+        json={"actor_staff_profile_id": actor.id, "to_status": "RESOLVED", "change_note": "Fixed"},
         headers=WORKER_HEADERS,
     )
     assert resolved.status_code == 200
@@ -135,7 +150,7 @@ def test_requests_end_to_end_all_actions(client, db_session):
 
     closed = client.patch(
         f"/requests/{request_id}/status",
-        json={"actor_user_id": creator.id, "to_status": "CLOSED", "change_note": "Verified"},
+        json={"actor_staff_profile_id": creator.id, "to_status": "CLOSED", "change_note": "Verified"},
         headers=WORKER_HEADERS,
     )
     assert closed.status_code == 200
@@ -143,13 +158,14 @@ def test_requests_end_to_end_all_actions(client, db_session):
 
     comment_on_closed = client.post(
         f"/requests/{request_id}/comments",
-        json={"author_user_id": actor.id, "comment_text": "Should fail"},
+        json={"author_staff_profile_id": actor.id, "comment_text": "Should fail"},
+        headers=WORKER_HEADERS,
     )
     assert comment_on_closed.status_code == 409
 
     status_on_closed = client.patch(
         f"/requests/{request_id}/status",
-        json={"actor_user_id": actor.id, "to_status": "IN_PROGRESS", "change_note": "Should fail"},
+        json={"actor_staff_profile_id": actor.id, "to_status": "IN_PROGRESS", "change_note": "Should fail"},
         headers=WORKER_HEADERS,
     )
     assert status_on_closed.status_code == 409
@@ -161,7 +177,7 @@ def test_requests_end_to_end_all_actions(client, db_session):
 
 
 def test_requests_invalid_transition_returns_409(client, db_session):
-    creator = _create_staff(db_session, "creator2@example.com", "Create", "Two")
+    creator = _create_staff_profile(db_session, "creator2@example.com", "Create", "Two")
     categories = client.get("/categories")
     assert categories.status_code == 200
     category_id = next(item["id"] for item in categories.json() if item["name"] == "Umwelt")
@@ -169,7 +185,7 @@ def test_requests_invalid_transition_returns_409(client, db_session):
     created = client.post(
         "/requests",
         json={
-            "creator_user_id": creator.id,
+            "creator_staff_profile_id": creator.id,
             "title": "Garbage dump",
             "description": "Illegal garbage in park",
             "category_id": category_id,
@@ -182,24 +198,24 @@ def test_requests_invalid_transition_returns_409(client, db_session):
 
     invalid = client.patch(
         f"/requests/{created.json()['id']}/status",
-        json={"actor_user_id": creator.id, "to_status": "CLOSED", "change_note": "Invalid"},
+        json={"actor_staff_profile_id": creator.id, "to_status": "CLOSED", "change_note": "Invalid"},
         headers=WORKER_HEADERS,
     )
     assert invalid.status_code == 409
 
 
 def test_validation_and_not_found_errors(client, db_session):
-    creator = _create_staff(db_session, "creator3@example.com", "Create", "Three")
+    creator = _create_staff_profile(db_session, "creator3@example.com", "Create", "Three")
 
     bad_category = client.post("/categories", json={"name": "   "}, headers=WORKER_HEADERS)
     assert bad_category.status_code == 422
     custom_category = client.post("/categories", json={"name": "Food"}, headers=WORKER_HEADERS)
     assert custom_category.status_code == 201
 
-    missing_user = client.post(
+    missing_profile = client.post(
         "/requests",
         json={
-            "creator_user_id": 999999,
+            "creator_staff_profile_id": 999999,
             "title": "x",
             "description": "y",
             "category_id": 1,
@@ -208,7 +224,7 @@ def test_validation_and_not_found_errors(client, db_session):
             "citizen_last_name": "User",
         },
     )
-    assert missing_user.status_code == 404
+    assert missing_profile.status_code == 404
 
     categories = client.get("/categories")
     assert categories.status_code == 200
@@ -217,7 +233,7 @@ def test_validation_and_not_found_errors(client, db_session):
     bad_request = client.post(
         "/requests",
         json={
-            "creator_user_id": creator.id,
+            "creator_staff_profile_id": creator.id,
             "title": "   ",
             "description": "desc",
             "category_id": category_id,
@@ -234,7 +250,7 @@ def test_validation_and_not_found_errors(client, db_session):
     req = client.post(
         "/requests",
         json={
-            "creator_user_id": creator.id,
+            "creator_staff_profile_id": creator.id,
             "title": "Open request",
             "description": "Open for validation",
             "category_id": category_id,
@@ -247,7 +263,8 @@ def test_validation_and_not_found_errors(client, db_session):
 
     blank_comment = client.post(
         f"/requests/{req.json()['id']}/comments",
-        json={"author_user_id": creator.id, "comment_text": "    "},
+        json={"author_staff_profile_id": creator.id, "comment_text": "    "},
+        headers=WORKER_HEADERS,
     )
     assert blank_comment.status_code == 422
 
@@ -259,14 +276,14 @@ def test_status_history_written_for_each_change(db_session):
 
 
 def test_citizen_cannot_access_worker_actions(client, db_session):
-    creator = _create_staff(db_session, "creator4@example.com", "Create", "Four")
-    actor = _create_staff(db_session, "actor4@example.com", "Actor", "Four")
+    creator = _create_staff_profile(db_session, "creator4@example.com", "Create", "Four")
+    actor = _create_staff_profile(db_session, "actor4@example.com", "Actor", "Four")
     category_id = next(item["id"] for item in client.get("/categories").json() if item["name"] == "Verkehr")
 
     created = client.post(
         "/requests",
         json={
-            "creator_user_id": creator.id,
+            "creator_staff_profile_id": creator.id,
             "title": "Blocked lane",
             "description": "Construction blocks one lane",
             "category_id": category_id,
@@ -281,14 +298,14 @@ def test_citizen_cannot_access_worker_actions(client, db_session):
 
     claim_forbidden = client.post(
         f"/requests/{request_id}/claim",
-        json={"actor_user_id": actor.id},
+        json={"actor_staff_profile_id": actor.id},
         headers=CITIZEN_HEADERS,
     )
     assert claim_forbidden.status_code == 403
 
     status_forbidden = client.patch(
         f"/requests/{request_id}/status",
-        json={"actor_user_id": actor.id, "to_status": "IN_PROGRESS"},
+        json={"actor_staff_profile_id": actor.id, "to_status": "IN_PROGRESS"},
         headers=CITIZEN_HEADERS,
     )
     assert status_forbidden.status_code == 403

@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import ActorRole, get_actor_role, require_worker
@@ -10,8 +10,8 @@ from app.core.logging import get_logger
 from app.db.models.category import Category
 from app.db.models.comment import RequestComment
 from app.db.models.request import CitizenRequest
+from app.db.models.staff_profile import StaffProfile
 from app.db.models.status_history import RequestStatusHistory
-from app.db.models.user import StaffUser
 from app.db.session import get_db
 from app.schemas.comment import CommentCreate, CommentRead
 from app.schemas.enums import RequestPriority, RequestStatus
@@ -22,7 +22,7 @@ from app.schemas.request import (
     RequestRead,
     RequestStatusUpdate,
 )
-from app.services.identity import ensure_citizen_person, ensure_staff_person
+from app.services.identity import ensure_citizen_person
 from app.services.request_service import apply_status_timestamps
 from app.services.workflow import is_valid_transition
 
@@ -30,25 +30,25 @@ router = APIRouter(prefix="/requests", tags=["requests"])
 logger = get_logger(__name__)
 
 
-def _require_user(db: Session, user_id: int) -> StaffUser:
-    user = db.get(StaffUser, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail=f"Mitarbeiter mit ID {user_id} wurde nicht gefunden.")
-    ensure_staff_person(db, user)
-    return user
+def _require_staff_profile(db: Session, staff_profile_id: int) -> StaffProfile:
+    staff_profile = db.get(StaffProfile, staff_profile_id)
+    if not staff_profile:
+        raise HTTPException(status_code=404, detail=f"Mitarbeiterprofil mit ID {staff_profile_id} wurde nicht gefunden.")
+    return staff_profile
 
 
-def _resolve_creator(db: Session, creator_user_id: int | None) -> StaffUser:
-    if creator_user_id is not None:
-        return _require_user(db, creator_user_id)
+def _resolve_creator(db: Session, creator_staff_profile_id: int | None) -> StaffProfile:
+    if creator_staff_profile_id is not None:
+        return _require_staff_profile(db, creator_staff_profile_id)
 
-    fallback = db.scalar(select(StaffUser).where(StaffUser.is_active.is_(True)).order_by(StaffUser.id.asc()))
+    fallback = db.scalar(
+        select(StaffProfile).where(StaffProfile.is_available.is_(True)).order_by(StaffProfile.id.asc())
+    )
     if fallback is None:
         raise HTTPException(
             status_code=409,
-            detail="Es ist kein aktiver Mitarbeiter verfuegbar, um die Erstellung des Anliegens zu registrieren.",
+            detail="Es ist kein aktives Mitarbeiterprofil verfuegbar, um die Erstellung des Anliegens zu registrieren.",
         )
-    ensure_staff_person(db, fallback)
     return fallback
 
 
@@ -80,7 +80,6 @@ def list_requests(
         stmt = stmt.where(CitizenRequest.category_id == category_id)
     if priority is not None:
         stmt = stmt.where(CitizenRequest.priority == priority)
-    # Keep display order deterministic: higher request IDs are shown first.
     stmt = stmt.order_by(CitizenRequest.id.desc())
 
     return list(db.scalars(stmt).all())
@@ -95,7 +94,7 @@ def create_request(
     if actor_role != "citizen":
         raise HTTPException(status_code=403, detail="Fuer diese Aktion ist die Rolle 'citizen' erforderlich.")
 
-    creator = _resolve_creator(db, payload.creator_user_id)
+    creator = _resolve_creator(db, payload.creator_staff_profile_id)
     _require_category(db, payload.category_id)
 
     title = payload.title.strip()
@@ -126,14 +125,14 @@ def create_request(
     )
     db.add(request)
     db.flush()
-    logger.info("request_created id=%s creator_user_id=%s", request.id, creator.id)
+    logger.info("request_created id=%s creator_staff_profile_id=%s", request.id, creator.id)
 
     db.add(
         RequestStatusHistory(
             request_id=request.id,
             from_status=None,
             to_status=RequestStatus.NEW,
-            changed_by_user_id=creator.id,
+            changed_by_staff_profile_id=creator.id,
             changed_by_person_id=creator.person_id,
             change_note="Initial status",
         )
@@ -141,7 +140,7 @@ def create_request(
 
     try:
         db.commit()
-    except IntegrityError as exc:
+    except (IntegrityError, SQLAlchemyError) as exc:
         db.rollback()
         raise HTTPException(
             status_code=409,
@@ -179,17 +178,17 @@ def claim_request(
     request_id: int, payload: RequestClaim, db: Session = Depends(get_db), _: None = Depends(require_worker)
 ) -> CitizenRequest:
     req = _require_request(db, request_id)
-    actor = _require_user(db, payload.actor_user_id)
+    actor = _require_staff_profile(db, payload.actor_staff_profile_id)
 
     if req.status == RequestStatus.CLOSED:
         raise HTTPException(status_code=409, detail="Ein geschlossenes Anliegen kann nicht bearbeitet werden.")
 
-    req.assigned_to_user_id = payload.actor_user_id
+    req.assigned_to_staff_profile_id = payload.actor_staff_profile_id
     req.assigned_to_person_id = actor.person_id
-    logger.info("request_claimed request_id=%s actor_user_id=%s", request_id, payload.actor_user_id)
+    logger.info("request_claimed request_id=%s actor_staff_profile_id=%s", request_id, payload.actor_staff_profile_id)
     try:
         db.commit()
-    except IntegrityError as exc:
+    except (IntegrityError, SQLAlchemyError) as exc:
         db.rollback()
         raise HTTPException(
             status_code=409,
@@ -204,7 +203,7 @@ def update_status(
     request_id: int, payload: RequestStatusUpdate, db: Session = Depends(get_db), _: None = Depends(require_worker)
 ) -> CitizenRequest:
     req = _require_request(db, request_id)
-    actor = _require_user(db, payload.actor_user_id)
+    actor = _require_staff_profile(db, payload.actor_staff_profile_id)
 
     if req.status == RequestStatus.CLOSED:
         raise HTTPException(status_code=409, detail="Ein geschlossenes Anliegen kann nicht bearbeitet werden.")
@@ -229,23 +228,23 @@ def update_status(
             request_id=req.id,
             from_status=from_status,
             to_status=payload.to_status,
-            changed_by_user_id=payload.actor_user_id,
+            changed_by_staff_profile_id=payload.actor_staff_profile_id,
             changed_by_person_id=actor.person_id,
             change_note=payload.change_note,
             changed_at=datetime.now(timezone.utc),
         )
     )
     logger.info(
-        "request_status_updated request_id=%s from_status=%s to_status=%s actor_user_id=%s",
+        "request_status_updated request_id=%s from_status=%s to_status=%s actor_staff_profile_id=%s",
         request_id,
         from_status.value,
         payload.to_status.value,
-        payload.actor_user_id,
+        payload.actor_staff_profile_id,
     )
 
     try:
         db.commit()
-    except IntegrityError as exc:
+    except (IntegrityError, SQLAlchemyError) as exc:
         db.rollback()
         raise HTTPException(
             status_code=409,
@@ -264,52 +263,47 @@ def add_comment(
 ) -> RequestComment:
     req = _require_request(db, request_id)
 
-    if req.status == RequestStatus.CLOSED:
-        raise HTTPException(status_code=409, detail="Ein geschlossenes Anliegen kann nicht bearbeitet werden.")
-
     comment_text = payload.comment_text.strip()
     if not comment_text:
-        raise HTTPException(status_code=422, detail="Der Kommentartext darf nicht leer sein.")
+        raise HTTPException(status_code=422, detail="Der Kommentar darf nicht leer sein.")
 
     if actor_role == "worker":
-        if payload.author_user_id is None:
-            raise HTTPException(status_code=422, detail="Fuer Mitarbeiterkommentare ist author_user_id erforderlich.")
-        author = _require_user(db, payload.author_user_id)
-        author_user_id = author.id
+        if payload.author_staff_profile_id is None:
+            raise HTTPException(status_code=422, detail="Fuer Mitarbeiterkommentare ist author_staff_profile_id erforderlich.")
+        author = _require_staff_profile(db, payload.author_staff_profile_id)
+        author_staff_profile_id = author.id
         author_person_id = author.person_id
-        author_role_value = "WORKER"
-        author_display_name = f"{author.first_name} {author.last_name}"
+        author_role = "WORKER"
+        author_display_name = author.display_name
     else:
-        author_user_id = None
-        if req.citizen_person_id is None:
-            citizen_person = ensure_citizen_person(db, req.citizen_first_name, req.citizen_last_name)
-            req.citizen_person_id = citizen_person.id
+        author_staff_profile_id = None
         author_person_id = req.citizen_person_id
-        author_role_value = "CITIZEN"
+        author_role = "CITIZEN"
         author_display_name = f"{req.citizen_first_name} {req.citizen_last_name}"
 
     comment = RequestComment(
         request_id=request_id,
-        author_user_id=author_user_id,
+        author_staff_profile_id=author_staff_profile_id,
         author_person_id=author_person_id,
-        author_role=author_role_value,
+        author_role=author_role,
         author_display_name=author_display_name,
         comment_text=comment_text,
     )
     db.add(comment)
     logger.info(
-        "request_comment_added request_id=%s actor_role=%s author_user_id=%s",
+        "request_comment_added request_id=%s actor_role=%s author_staff_profile_id=%s",
         request_id,
         actor_role,
-        author_user_id,
+        author_staff_profile_id,
     )
+
     try:
         db.commit()
-    except IntegrityError as exc:
+    except (IntegrityError, SQLAlchemyError) as exc:
         db.rollback()
         raise HTTPException(
             status_code=409,
-            detail="Der Kommentar konnte aufgrund von Datenintegritaetsregeln nicht hinzugefuegt werden.",
+            detail="Der Kommentar verletzt Datenintegritaetsregeln.",
         ) from exc
     db.refresh(comment)
     return comment
